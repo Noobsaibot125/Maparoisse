@@ -320,7 +320,7 @@ class _DashboardScreenWithIndexState extends State<DashboardScreenWithIndex> {
             : FloatingActionButton( // 👈 Sinon, affiche le bouton
           onPressed: () => _onItemTapped(2), // Pointe vers "Demande"
           backgroundColor:  AppTheme.infoColor,
-          child: const Icon(
+          child: const FaIcon(
             FontAwesomeIcons.handHoldingHeart,
             color: Colors.white,
           ),
@@ -391,8 +391,8 @@ class _DashboardScreenWithIndexState extends State<DashboardScreenWithIndex> {
 
 
   Widget _buildBottomNavItem({
-    required IconData icon,
-    required IconData activeIcon,
+    required dynamic icon,
+    required dynamic activeIcon,
     required String label,
     required int index,
   }) {
@@ -418,12 +418,17 @@ class _DashboardScreenWithIndexState extends State<DashboardScreenWithIndex> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                isSelected ? activeIcon : icon,
-                // ✅ CORRECTION COULEUR ICÔNE
-                color: isSelected ? activeColor : inactiveColor,
-                size: 24,
-              ),
+              icon is IconData
+                  ? Icon(
+                      isSelected ? (activeIcon as IconData) : (icon as IconData),
+                      color: isSelected ? activeColor : inactiveColor,
+                      size: 24,
+                    )
+                  : FaIcon(
+                      isSelected ? (activeIcon as FaIconData) : (icon as FaIconData),
+                      color: isSelected ? activeColor : inactiveColor,
+                      size: 24,
+                    ),
               const SizedBox(height: 4),
               Text(
                 label,
