@@ -50,11 +50,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAB3dLS3ot2y7bJQI_FOxq9yQCYRH_2crk',
-    appId: '1:946263966195:android:b5672d9d64a4bae521d286',
-    messagingSenderId: '946263966195',
-    projectId: 'emesse-c9236',
-    storageBucket: 'emesse-c9236.firebasestorage.app',
+    apiKey: 'AIzaSyA69PyC3X_4-FMW1tWkZBsWrCuW2BedhKA',
+    appId: '1:377457309919:android:b18af58c2c64720b44916a',
+    messagingSenderId: '377457309919',
+    projectId: 'e-messe-e1028',
+    storageBucket: 'e-messe-e1028.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

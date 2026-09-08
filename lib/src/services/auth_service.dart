@@ -20,8 +20,8 @@ class AuthService extends ChangeNotifier {
   // --- NOUVELLE BASE URL POUR L'API ---
 
 
-  static const String _baseUrl = "https://e-messe-ci.com/api";
-
+  static const String _baseUrl = "https://exclusively-untoppled-forest.ngrok-free.dev/api";
+//  static const String _baseUrl = "https://e-messe-ci.com/api";
 
   // --- 1. AJOUTE CETTE LIGNE ---
   /// La liste des notifications en cache pour l'application.
@@ -129,6 +129,7 @@ class AuthService extends ChangeNotifier {
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   };
 
   // Headers pour les requêtes authentifiées
@@ -136,6 +137,7 @@ class AuthService extends ChangeNotifier {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     'Authorization': 'Bearer $_token', // Ajoute le token
+    'ngrok-skip-browser-warning': 'true',
   };
 
 
@@ -225,6 +227,7 @@ class AuthService extends ChangeNotifier {
       request.headers.addAll({
         'Accept': 'application/json',
         'Content-Type': 'multipart/form-data',
+        'ngrok-skip-browser-warning': 'true',
       });
 
       // Champs texte
@@ -390,8 +393,7 @@ class AuthService extends ChangeNotifier {
       // 2. On ajoute un Timeout de 15s pour ne pas bloquer indéfiniment
       final response = await http.post(
         url,
-        // J'utilise explicitement les headers JSON pour la sécurité du login
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: _headers,
         body: body,
       ).timeout(const Duration(seconds: 15));
 

@@ -43,8 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // AJOUTE CETTE LIGNE OBLIGATOIREMENT
-    serverClientId: '946263966195-7a7tqneqphc6sf5nqkaufii1hpkndgd9.apps.googleusercontent.com',
+    // Web Client ID requis pour obtenir l'idToken sur Android
+    serverClientId: '377457309919-blh0m5e2sesscb4uquvmekvfdvt40kou.apps.googleusercontent.com',
   );
 
   bool _isGoogleLoading = false;

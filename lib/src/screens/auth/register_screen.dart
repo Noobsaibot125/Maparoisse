@@ -42,7 +42,10 @@ class _RegisterScreenState extends State<RegisterScreen>
   int _currentStep = 0;
   bool _isLoading = false;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Instance Google
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    // Web Client ID requis pour obtenir l'idToken sur Android
+    serverClientId: '377457309919-blh0m5e2sesscb4uquvmekvfdvt40kou.apps.googleusercontent.com',
+  ); // Instance Google
   bool _isGoogleLoading = false; // État chargement Google
 
 

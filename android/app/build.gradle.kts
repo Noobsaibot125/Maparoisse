@@ -22,7 +22,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.kks.maparoisse"
+        applicationId = "com.kkstechnologies.emesse"
 
         // J'ai remis 21 en dur pour éviter les erreurs de lecture de variable flutter
         minSdk = flutter.minSdkVersion
