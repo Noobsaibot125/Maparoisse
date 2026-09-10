@@ -108,14 +108,28 @@ class NotificationService {
 
   /// 5. Affiche le pop-up (notification locale)
   Future<void> showLocalNotification(RemoteMessage message) async {
+    final String? type = message.data['type'];
     String title = message.notification?.title ?? message.data['title'] ?? 'Nouvelle Notification';
     String body = message.notification?.body ?? message.data['body'] ?? 'Vous avez un nouveau message.';
 
-    final String? type = message.data['type'];
+    // Ne pas afficher la notification locale pour les demandes en attente de paiement
+    // (lors de l'initiation du paiement / création de la demande)
+    final String typeLower = (type ?? '').toLowerCase();
+    final String titleLower = title.toLowerCase();
+    final String bodyLower = body.toLowerCase();
+
+    if (typeLower == 'messe_en_attente_paiement' ||
+        typeLower.contains('attente_paiement') ||
+        (titleLower.contains('attente') && titleLower.contains('paiement')) ||
+        (bodyLower.contains('attente') && bodyLower.contains('paiement'))) {
+      print("--- Notification 'en attente de paiement' ignorée (pas d'affichage local) ---");
+      return;
+    }
+
     String? id;
 
     // J'ai corrigé les "||" qui manquaient ici
-    if (type == 'messe_confirmee' || type == 'messe_en_attente_paiement' || type == 'request_update') {
+    if (type == 'messe_confirmee' || type == 'request_update') {
       id = message.data['messe_id']?.toString() ?? message.data['request_id']?.toString();
     } else if (type == 'event') {
       id = message.data['event_id']?.toString();
