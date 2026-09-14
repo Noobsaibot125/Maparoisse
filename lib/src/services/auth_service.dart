@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http; // <-- 1. Importer http
@@ -12,22 +11,18 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart'; // <--- 1. IMPORT OBLIGATOIRE
 
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-
-
-
+import 'package:maparoisse/src/services/network_service.dart';
 
 class AuthService extends ChangeNotifier {
   // --- NOUVELLE BASE URL POUR L'API ---
 
-
   static const String _baseUrl = "https://exclusively-untoppled-forest.ngrok-free.dev/api";
-//  static const String _baseUrl = "https://e-messe-ci.com/api";
+  //static const String _baseUrl = "https://e-messe-ci.com/api";
 
   // --- 1. AJOUTE CETTE LIGNE ---
   /// La liste des notifications en cache pour l'application.
   List<NotificationModel>? _notifications;
   // --- FIN AJOUT ---
-
 
   // --- MODIFICATION ---
   // Au lieu de créer une nouvelle instance, il récupère le singleton
@@ -48,8 +43,6 @@ class AuthService extends ChangeNotifier {
   static const String _keyEstBaptise = "est_baptise";
   // Les clés _keyPassword, _keyGoogleId, _keyLoginMethod sont supprimées car gérées par l'API
 
-
-
   // --- Variables d'état ---
   bool _isAuthenticated = false;
   String? _token; // <-- Variable pour garder le token en mémoire
@@ -69,7 +62,6 @@ class AuthService extends ChangeNotifier {
   String? get email => _email;
   String? get phone => _phone;
 
-
   // ✅ REMPLACE LA LIGNE "String? get photoPath => _photoPath;" PAR CECI :
 
   String? get photoPath {
@@ -82,7 +74,10 @@ class AuthService extends ChangeNotifier {
     // Si l'URL contient ".../storage/https...", on coupe tout ce qu'il y a avant "https"
     if (_photoPath!.contains('/storage/http')) {
       // On trouve où commence le "http" imbriqué et on ne garde que la fin
-      int indexHttp = _photoPath!.indexOf('http', 5); // On cherche 'http' après les 5 premiers caractères
+      int indexHttp = _photoPath!.indexOf(
+        'http',
+        5,
+      ); // On cherche 'http' après les 5 premiers caractères
       if (indexHttp != -1) {
         return _photoPath!.substring(indexHttp);
       }
@@ -94,35 +89,34 @@ class AuthService extends ChangeNotifier {
     }
 
     // 4. Sinon, c'est une image locale (ex: "profiles/toto.jpg"), on ajoute ton serveur
-    String cleanPath = _photoPath!.startsWith('/') ? _photoPath!.substring(1) : _photoPath!;
+    String cleanPath = _photoPath!.startsWith('/')
+        ? _photoPath!.substring(1)
+        : _photoPath!;
     return "https://e-messe-ci.com/storage/$cleanPath";
   }
-
 
   String? get civilite => _civilite;
   bool _estBaptise = false;
   // 'get password' est supprimé
 
-
   static const String _keyGoogleId = "google_id";
   static const String _keyAppleId = "apple_id";
-
 
   String? _googleId;
   String? _appleId;
 
-
   // Getter pour savoir si l'utilisateur est baptisé
   bool get isBaptized => _estBaptise;
-
 
   // ✅ AJOUTE CE GETTER
   // Cela permet de savoir facilement si le profil est complet
   bool get estIdentifie {
     // Vérifie si les infos cruciales sont présentes
     // Tu peux ajouter d'autres conditions (ex: _paroisse != null)
-    return _phone != null && _phone!.isNotEmpty &&
-        _fullName != null && _fullName!.isNotEmpty;
+    return _phone != null &&
+        _phone!.isNotEmpty &&
+        _fullName != null &&
+        _fullName!.isNotEmpty;
   }
 
   // Headers communs pour les requêtes API
@@ -140,19 +134,12 @@ class AuthService extends ChangeNotifier {
     'ngrok-skip-browser-warning': 'true',
   };
 
-
-
-
-
-
   // ✅ NOUVEAU GETTER : Basé sur les données de ton Backend
   bool get isSocialUser {
     // Si l'utilisateur a un ID Google OU un ID Apple stocké, c'est un social user.
     return (_googleId != null && _googleId!.isNotEmpty) ||
         (_appleId != null && _appleId!.isNotEmpty);
   }
-
-
 
   /// REFACTORISÉ : Vérifie le token au démarrage en appelant GET /user
   Future<bool> isLoggedIn() async {
@@ -166,7 +153,6 @@ class AuthService extends ChangeNotifier {
     }
 
     _token = storedToken; // Charge le token en mémoire
-
 
     // --- AJOUT : Rechargement des IDs Sociaux ---
     _googleId = prefs.getString(_keyGoogleId);
@@ -187,7 +173,9 @@ class AuthService extends ChangeNotifier {
         await _saveAuthData(
           token: storedToken,
           user: apiUser,
-          civilite: prefs.getString(_keyCivilite), // Conserve l'ancienne civilité
+          civilite: prefs.getString(
+            _keyCivilite,
+          ), // Conserve l'ancienne civilité
         );
 
         _isAuthenticated = true;
@@ -206,8 +194,6 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
-
-
 
   Future<bool> register({
     required String fullName,
@@ -241,14 +227,19 @@ class AuthService extends ChangeNotifier {
 
       // Fichier image
       if (photoPath != null && photoPath.isNotEmpty) {
-        var file = await http.MultipartFile.fromPath('profile_picture', photoPath);
+        var file = await http.MultipartFile.fromPath(
+          'profile_picture',
+          photoPath,
+        );
         request.files.add(file);
       }
 
       print("--- Envoi Inscription vers $url ---");
 
       // Envoi avec Timeout
-      var streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      var streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
       var response = await http.Response.fromStream(streamedResponse);
 
       print("Register Status: ${response.statusCode}");
@@ -270,7 +261,8 @@ class AuthService extends ChangeNotifier {
 
         // FCM Token (Non bloquant)
         try {
-          final String? fcmToken = await _notificationService.initializeAndGetToken();
+          final String? fcmToken = await _notificationService
+              .initializeAndGetToken();
           if (fcmToken != null) {
             _sendFCMTokenToBackend(fcmToken);
           }
@@ -280,7 +272,6 @@ class AuthService extends ChangeNotifier {
 
         return true;
       }
-
       // --- CAS 2 : ERREUR DE VALIDATION (422) ---
       // C'est ici qu'on attrape "Email has already been taken"
       else if (response.statusCode == 422) {
@@ -293,33 +284,37 @@ class AuthService extends ChangeNotifier {
           if (errors.isNotEmpty) {
             // On prend la première erreur de la liste
             final firstKey = errors.keys.first; // ex: "email"
-            final firstErrorList = errors[firstKey]; // ex: ["The email has already been taken."]
+            final firstErrorList =
+                errors[firstKey]; // ex: ["The email has already been taken."]
             if (firstErrorList is List && firstErrorList.isNotEmpty) {
               message = firstErrorList.first;
             }
           }
         }
 
-        throw Exception(message); // On renvoie le message précis (ex: "Email déjà pris")
+        throw Exception(
+          message,
+        ); // On renvoie le message précis (ex: "Email déjà pris")
       }
-
       // --- CAS 3 : AUTRES ERREURS (500, 404, etc.) ---
       else {
         // On évite de décoder le JSON ici car ça peut être du HTML (Erreur serveur)
-        throw Exception("Erreur serveur (${response.statusCode}). Veuillez réessayer plus tard.");
+        throw Exception(
+          "Erreur serveur (${response.statusCode}). Veuillez réessayer plus tard.",
+        );
       }
-
     } on SocketException catch (_) {
       throw Exception('Pas de connexion Internet. Vérifiez votre réseau.');
     } on TimeoutException catch (_) {
-      throw Exception('Le serveur met trop de temps à répondre. Votre connexion est peut-être trop lente.');
+      throw Exception(
+        'Le serveur met trop de temps à répondre. Votre connexion est peut-être trop lente.',
+      );
     } catch (e) {
       print("Erreur Register (Catch): $e");
       // On nettoie le "Exception: " pour l'affichage
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
-
 
   // 1. AJOUTE CE GETTER
   /// Vérifie s'il y a des notifications non lues dans la liste.
@@ -328,31 +323,33 @@ class AuthService extends ChangeNotifier {
     return _notifications?.any((notif) => !notif.isRead) ?? false;
   }
 
-
-
-
   /// Fonction publique appelée par le bouton UI
   Future<bool> signInWithApple() async {
     try {
       // 1. Ouvre la fenêtre native iOS
       final AuthorizationCredentialAppleID appleCredential =
-      await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
+          await SignInWithApple.getAppleIDCredential(
+            scopes: [
+              AppleIDAuthorizationScopes.email,
+              AppleIDAuthorizationScopes.fullName,
+            ],
+          );
 
       // 2. Prépare les données
       // Attention : email/name peuvent être null après la 1ère connexion
       String? email = appleCredential.email;
       String? fullName;
 
-      if (appleCredential.givenName != null || appleCredential.familyName != null) {
-        fullName = "${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}".trim();
+      if (appleCredential.givenName != null ||
+          appleCredential.familyName != null) {
+        fullName =
+            "${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}"
+                .trim();
       }
 
-      print("Apple Identity Token: ${appleCredential.identityToken?.substring(0, 20)}...");
+      print(
+        "Apple Identity Token: ${appleCredential.identityToken?.substring(0, 20)}...",
+      );
       print("Apple User ID: ${appleCredential.userIdentifier}");
 
       // 3. Appelle ton API Backend (La fonction qu'on vient de créer au-dessus)
@@ -366,15 +363,11 @@ class AuthService extends ChangeNotifier {
       }
 
       return false;
-
     } catch (e) {
       print("Erreur Flow Apple (Annulation ou autre): $e");
       return false;
     }
   }
-
-
-
 
   /// REFACTORISÉ : Connecte un utilisateur (Gestion erreurs Internet incluse)
   Future<bool> loginWithEmailOrUsername({
@@ -384,18 +377,13 @@ class AuthService extends ChangeNotifier {
     // 1. Ton URL existante
     final url = Uri.parse("$_baseUrl/auth/login");
 
-    final body = jsonEncode({
-      "login": loginInput,
-      "password": password,
-    });
+    final body = jsonEncode({"login": loginInput, "password": password});
 
     try {
       // 2. On ajoute un Timeout de 15s pour ne pas bloquer indéfiniment
-      final response = await http.post(
-        url,
-        headers: _headers,
-        body: body,
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(url, headers: _headers, body: body)
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body);
 
@@ -404,15 +392,12 @@ class AuthService extends ChangeNotifier {
         final apiUser = data['user'];
         final token = data['access_token'];
 
-        await _saveAuthData(
-          token: token,
-          user: apiUser,
-          civilite: null,
-        );
+        await _saveAuthData(token: token, user: apiUser, civilite: null);
 
         // --- TON BLOC FCM (PRÉSERVÉ) ---
         try {
-          final String? fcmToken = await _notificationService.initializeAndGetToken();
+          final String? fcmToken = await _notificationService
+              .initializeAndGetToken();
           if (fcmToken != null) {
             // Fais-le en arrière-plan
             _sendFCMTokenToBackend(fcmToken);
@@ -424,18 +409,19 @@ class AuthService extends ChangeNotifier {
 
         return true; // ✅ Tout est bon
       }
-
       // --- CAS 2 : ERREUR D'IDENTIFIANTS (401 ou status != success) ---
-      else if (response.statusCode == 401 || response.statusCode == 422 || data['status'] == 'error') {
+      else if (response.statusCode == 401 ||
+          response.statusCode == 422 ||
+          data['status'] == 'error') {
         print("Erreur Login (API): ${data['message']}");
         return false; // ❌ Retourne FALSE pour dire "Mauvais mot de passe"
       }
-
       // --- CAS 3 : ERREUR SERVEUR (500, 404...) ---
       else {
-        throw Exception('Erreur serveur (${response.statusCode}). Veuillez réessayer plus tard.');
+        throw Exception(
+          'Erreur serveur (${response.statusCode}). Veuillez réessayer plus tard.',
+        );
       }
-
     } on SocketException catch (_) {
       // ⚠️ CAS 4 : PAS D'INTERNET
       throw Exception('Pas de connexion Internet. Vérifiez votre réseau.');
@@ -449,13 +435,8 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
-
   /// DÉCONNEXION COMPLÈTE ET INTELLIGENTE
   Future<void> logout({bool apiCall = true}) async {
-
     // 1. DÉSINSCRIPTION FCM (Notification)
     try {
       // Récupération du token sans demander de permission
@@ -470,9 +451,7 @@ class AuthService extends ChangeNotifier {
             'Accept': 'application/json',
             'Authorization': 'Bearer $_token',
           },
-          body: jsonEncode({
-            "fcm_token": fcmToken
-          }),
+          body: jsonEncode({"fcm_token": fcmToken}),
         );
       }
     } catch (e) {
@@ -525,13 +504,6 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-
-
-
-
-
-
-
   /// --- NOUVEAU Helper (CORRIGÉ & AJUSTÉ) : Sauvegarde les données post-connexion ---
   Future<void> _saveAuthData({
     required String token,
@@ -561,7 +533,6 @@ class AuthService extends ChangeNotifier {
     if (aId != null) await prefs.setString(_keyAppleId, aId);
      */
 
-
     // 2. Sauvegarde des IDs Sociaux (CORRIGÉ)
     // On ne met à jour QUE si l'API nous envoie une valeur.
     // Si l'API renvoie null, on ne touche pas à ce qu'on a déjà en mémoire/stockage.
@@ -582,7 +553,6 @@ class AuthService extends ChangeNotifier {
     // _googleId = gId;  <-- C'est ça qui effaçait ta variable !
     // _appleId = aId;   <-- C'est ça qui effaçait ta variable !
 
-
     // ---------------------------------------
     // 3. LOGIQUE BAPTÊME (Robuste)
     // ---------------------------------------
@@ -592,7 +562,9 @@ class AuthService extends ChangeNotifier {
 
     // B. On vérifie si l'API nous envoie une info fraîche
     if (user.containsKey('est_baptise') && user['est_baptise'] != null) {
-      if (user['est_baptise'] == 1 || user['est_baptise'] == true || user['est_baptise'] == "1") {
+      if (user['est_baptise'] == 1 ||
+          user['est_baptise'] == true ||
+          user['est_baptise'] == "1") {
         finalStatus = true;
       } else {
         finalStatus = false;
@@ -607,11 +579,13 @@ class AuthService extends ChangeNotifier {
     // 4. CORRECTION URL IMAGE
     // ---------------------------------------
     String? finalPhotoUrl;
-    if (user['profile_picture'] != null && (user['profile_picture'] as String).isNotEmpty) {
+    if (user['profile_picture'] != null &&
+        (user['profile_picture'] as String).isNotEmpty) {
       String apiPhotoPath = user['profile_picture'];
 
       // Si c'est déjà une URL complète (Google/Apple)
-      if (apiPhotoPath.startsWith('http://') || apiPhotoPath.startsWith('https://')) {
+      if (apiPhotoPath.startsWith('http://') ||
+          apiPhotoPath.startsWith('https://')) {
         finalPhotoUrl = apiPhotoPath;
       }
       // Sinon c'est un chemin relatif vers ton serveur
@@ -633,7 +607,8 @@ class AuthService extends ChangeNotifier {
 
     // A. On cherche la civilité dans la réponse du serveur
     // (Utile quand on se reconnecte via Google et que l'argument 'civilite' est null)
-    String? apiCivilite = user['civilite']; // Vérifie si ton backend renvoie bien 'civilite'
+    String? apiCivilite =
+        user['civilite']; // Vérifie si ton backend renvoie bien 'civilite'
 
     // B. On décide quelle civilité garder :
     // Priorité 1 : Celle passée en argument (ex: Inscription ou Edit Profil)
@@ -652,7 +627,7 @@ class AuthService extends ChangeNotifier {
     // ---------------------------------------
     // 6. Mise à jour finale des variables d'état (Provider)
 
-// ---------------------------------------
+    // ---------------------------------------
     _isAuthenticated = true;
     _token = token;
     _id = user['id'];
@@ -666,10 +641,6 @@ class AuthService extends ChangeNotifier {
 
     notifyListeners();
   }
-
-
-
-
 
   /// REFACTORISÉ : Met à jour les informations du profil via API
   Future<bool> updateUserProfile({
@@ -742,10 +713,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
-
   /// REFACTORISÉ : Tente de changer le mot de passe via l'API
   Future<bool> changePassword({
     required String oldPassword,
@@ -777,7 +744,6 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
-
 
   /// NOUVEAU : Met à jour les préférences de notification via l'API
   Future<bool> updateNotificationSettings({
@@ -813,9 +779,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   /// Gère l'inscription ou la connexion d'un utilisateur via Google
   Future<bool> registerOrLoginGoogleUser({
     required String email,
@@ -841,10 +804,6 @@ class AuthService extends ChangeNotifier {
     return false; // Échoue par défaut
   }
 
-
-
-
-
   // DANS LA CLASSE AuthService (fichier auth_service.dart)
 
   /// NOUVEAU (CORRIGÉ) : Récupère la liste de toutes les paroisses
@@ -853,16 +812,14 @@ class AuthService extends ChangeNotifier {
 
     final url = Uri.parse("$_baseUrl/paroisses/");
     try {
-
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       final data = jsonDecode(response.body); // Décode la réponse
 
       // Vérifie le statut de la réponse API
       if (response.statusCode == 200 && data['status'] == 'success') {
-
         // --- CORRECTION ---
         // La liste est maintenant imbriquée dans data -> data -> data
         final List<dynamic> parishList = data['data']['data'];
@@ -875,11 +832,9 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       print("Erreur getParishes (catch): $e");
-      throw Exception('Erreur réseau: $e');
+      rethrow;
     }
   }
-
-
 
   // DANS LA CLASSE AuthService (fichier auth_service.dart)
 
@@ -890,8 +845,9 @@ class AuthService extends ChangeNotifier {
     // Utilise le nouvel endpoint GET /favoris/
     final url = Uri.parse("$_baseUrl/favoris/");
     try {
-      final response = await _handleRequest (http.get(url, headers: _authHeaders));
-
+      final response = await _handleRequest(
+        http.get(url, headers: _authHeaders),
+      );
 
       final data = jsonDecode(response.body);
 
@@ -901,7 +857,6 @@ class AuthService extends ChangeNotifier {
       // OU { "status": "success", "data": [ ... favoris ... ] }
 
       if (response.statusCode == 200 && data['status'] == 'success') {
-
         // Adapte cette ligne en fonction de la vraie structure JSON de /favoris
         if (data['data'] is List) {
           return data['data']; // Si c'est { "data": [ ... ] }
@@ -915,20 +870,15 @@ class AuthService extends ChangeNotifier {
 
         print("Structure de /favoris non reconnue : ${data}");
         return [];
-
       } else {
         print("Erreur getFavoriteParishes (API): ${data['message']}");
         throw Exception('Échec du chargement des favoris');
       }
     } catch (e) {
       print("Erreur getFavoriteParishes (catch): $e");
-      throw Exception('Erreur réseau: $e');
+      rethrow;
     }
   }
-
-
-
-
 
   /// NOUVEAU : Vérifie si une paroisse est en favori
   Future<bool> isParishFavorite(int parishId) async {
@@ -936,9 +886,8 @@ class AuthService extends ChangeNotifier {
 
     final url = Uri.parse("$_baseUrl/favoris/check/$parishId");
     try {
-
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       if (response.statusCode == 200) {
@@ -948,9 +897,10 @@ class AuthService extends ChangeNotifier {
         // On lit la clé "favori" que l'API renvoie
         return data['favori'] == true;
         // --- FIN CORRECTION ---
-
       } else {
-        print("Erreur API /check (status ${response.statusCode}): ${response.body}");
+        print(
+          "Erreur API /check (status ${response.statusCode}): ${response.body}",
+        );
         return false; // Suppose "non favori" si l'API renvoie une erreur
       }
     } catch (e) {
@@ -971,15 +921,12 @@ class AuthService extends ChangeNotifier {
     final url = Uri.parse("$_baseUrl/paroisses/toggle");
     // --- FIN CORRECTION ---
 
-    final body = jsonEncode({
-      "paroisse_id": parishId
-    });
+    final body = jsonEncode({"paroisse_id": parishId});
 
     try {
       final response = await _handleRequest(
-          http.post(url, headers: _authHeaders, body: body)
+        http.post(url, headers: _authHeaders, body: body),
       );
-
 
       final data = jsonDecode(response.body); // Décode la réponse
 
@@ -997,9 +944,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   // DANS LA CLASSE AuthService (fichier auth_service.dart)
   /// NOUVEAU (CORRIGÉ) : Récupère la liste de tous les événements
   Future<List<dynamic>> getEvents() async {
@@ -1007,9 +951,8 @@ class AuthService extends ChangeNotifier {
 
     final url = Uri.parse("$_baseUrl/event/");
     try {
-
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       final data = jsonDecode(response.body);
@@ -1031,9 +974,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   /// NOUVEAU : Récupère les détails d'un événement
   Future<Map<String, dynamic>?> getEventDetail(int eventId) async {
     if (!_isAuthenticated) {
@@ -1044,7 +984,7 @@ class AuthService extends ChangeNotifier {
     final url = Uri.parse("$_baseUrl/event/$eventId");
     try {
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       print("--- getEventDetail (API: /event/$eventId) ---");
@@ -1071,13 +1011,6 @@ class AuthService extends ChangeNotifier {
       return null;
     }
   }
-
-
-
-
-
-
-
 
   /// MODIFIÉ : Crée une demande de messe (renvoie l'objet 'messe')
   Future<Map<String, dynamic>> createMassRequest({
@@ -1119,22 +1052,24 @@ class AuthService extends ChangeNotifier {
     final body = jsonEncode(bodyMap);
 
     try {
-      final response = await _handleRequest (http.post(url, headers: _authHeaders, body: body));
-
+      final response = await _handleRequest(
+        http.post(url, headers: _authHeaders, body: body),
+      );
 
       final data = jsonDecode(response.body);
 
       // L'API renvoie 200/201 et { "status": "success", "messe": {...} }
-      if ((response.statusCode == 200 || response.statusCode == 201) && data['status'] == 'success') {
-
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          data['status'] == 'success') {
         // --- CORRECTION : Renvoie l'objet 'messe' ---
         if (data['messe'] != null) {
           return data['messe'] as Map<String, dynamic>;
         } else {
-          throw Exception("L'API a réussi mais n'a pas renvoyé l'objet 'messe'.");
+          throw Exception(
+            "L'API a réussi mais n'a pas renvoyé l'objet 'messe'.",
+          );
         }
         // --- FIN CORRECTION ---
-
       } else {
         // ... (ta gestion d'erreur reste la même) ...
         print("Erreur createMassRequest (API): ${data['message']}");
@@ -1146,12 +1081,13 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       print("Erreur createMassRequest (catch): $e");
       if (e is FormatException) {
-        throw Exception('Erreur réseau (HTML reçu). Vérifiez l\'URL de l\'API.');
+        throw Exception(
+          'Erreur réseau (HTML reçu). Vérifiez l\'URL de l\'API.',
+        );
       }
       throw e;
     }
   }
-
 
   /// NOUVEAU : Récupère la liste des demandes de messes de l'utilisateur
   Future<List<dynamic>> getMassRequests() async {
@@ -1161,7 +1097,7 @@ class AuthService extends ChangeNotifier {
     final url = Uri.parse("$_baseUrl/messes/");
     try {
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       final data = jsonDecode(response.body);
@@ -1176,14 +1112,9 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       print("Erreur getMassRequests (catch): $e");
-      throw Exception('Erreur réseau: $e');
+      rethrow;
     }
   }
-
-
-
-
-
 
   /// MODIFIÉ : Récupère l'URL de checkout (envoie messe_id, montant, et tel)
   Future<String> getCheckoutUrl(int messeId, double totalAmount) async {
@@ -1196,34 +1127,36 @@ class AuthService extends ChangeNotifier {
       "messe_id": messeId,
       "montant": totalAmount,
       "telephone": _phone, // Utilise le téléphone stocké dans AuthService
-      "devise": "XOF" // On le garde au cas où
+      "devise": "XOF", // On le garde au cas où
     });
     // --- FIN CORRECTION ---
 
     try {
       final response = await _handleRequest(
-          http.post(url, headers: _authHeaders, body: body)
+        http.post(url, headers: _authHeaders, body: body),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['statut'] == 'success') {
-
         final String? checkoutUrl = data['checkout_url'];
 
         if (checkoutUrl != null && checkoutUrl.isNotEmpty) {
           return checkoutUrl;
         } else {
-          throw Exception('Le serveur a confirmé le succès mais n\'a pas fourni d\'URL de paiement.');
+          throw Exception(
+            'Le serveur a confirmé le succès mais n\'a pas fourni d\'URL de paiement.',
+          );
         }
-
       } else {
         print("Erreur getCheckoutUrl (API): ${data['message']}");
         // Gère le cas où la validation échoue
         if (data['errors'] != null) {
           throw Exception((data['errors'] as Map).values.first[0]);
         }
-        throw Exception(data['message'] ?? 'Échec de la récupération du lien de paiement');
+        throw Exception(
+          data['message'] ?? 'Échec de la récupération du lien de paiement',
+        );
       }
     } catch (e) {
       print("Erreur getCheckoutUrl (catch): $e");
@@ -1231,10 +1164,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
-  Future<bool> loginWithApple(String identityToken, String appleId, String? email, String? fullName) async {
+  Future<bool> loginWithApple(
+    String identityToken,
+    String appleId,
+    String? email,
+    String? fullName,
+  ) async {
     final url = Uri.parse("$_baseUrl/auth/apple");
 
     final body = jsonEncode({
@@ -1251,18 +1186,17 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await http.post(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: body
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: body,
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['status'] == 'success') {
-
         print("--- [AuthService] Réponse Apple reçue ---");
         print("Status Code: ${response.statusCode}");
         print("JSON Reçu (data): $data");
@@ -1272,24 +1206,23 @@ class AuthService extends ChangeNotifier {
         final Map<String, dynamic> user = data['user'];
 
         // 3. Sauvegarde des données (CRITIQUE : Doit marcher)
-        await _saveAuthData(
-            token: apiToken,
-            user: user,
-            civilite: null
-        );
+        await _saveAuthData(token: apiToken, user: user, civilite: null);
 
         // 4. Gestion FCM (NON BLOQUANTE)
         // On isole cette partie. Si elle échoue (ex: Simulateur, erreur APNS),
         // l'utilisateur est QUAND MÊME connecté.
         try {
           print("Tentative de récupération du token FCM...");
-          final String? fcmToken = await _notificationService.initializeAndGetToken();
+          final String? fcmToken = await _notificationService
+              .initializeAndGetToken();
 
           if (fcmToken != null) {
             // On ne met pas 'await' ici pour ne pas ralentir l'UI, ou alors un await rapide
             _sendFCMTokenToBackend(fcmToken);
           } else {
-            print("⚠️ AVERTISSEMENT: Pas de token FCM (Normal sur Simulateur). Login continue.");
+            print(
+              "⚠️ AVERTISSEMENT: Pas de token FCM (Normal sur Simulateur). Login continue.",
+            );
           }
         } catch (e) {
           print("Erreur FCM silencieuse (Apple): $e");
@@ -1297,22 +1230,23 @@ class AuthService extends ChangeNotifier {
         }
 
         return true; // ✅ SUCCÈS GARANTI
-
       } else {
         print("Erreur loginWithApple (API): ${data['message']}");
         return false;
       }
-
     } catch (e) {
       print("Erreur loginWithApple (catch): $e");
       return false;
     }
   }
 
-
-
-
-  Future<bool> loginWithGoogle(String idToken, String email, String? name, String googleId, String? photoUrl) async {
+  Future<bool> loginWithGoogle(
+    String idToken,
+    String email,
+    String? name,
+    String googleId,
+    String? photoUrl,
+  ) async {
     final url = Uri.parse("$_baseUrl/auth/google");
 
     final body = jsonEncode({
@@ -1320,7 +1254,7 @@ class AuthService extends ChangeNotifier {
       "email": email,
       "name": name ?? "",
       "googleId": googleId,
-      "profile_picture": photoUrl ?? ""
+      "profile_picture": photoUrl ?? "",
     });
 
     print("--- [AuthService] Envoi des données Google au Backend ---");
@@ -1330,18 +1264,17 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await http.post(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: body
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: body,
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['status'] == 'success') {
-
         print("--- [AuthService] Réponse Google reçue ---");
         print("Status Code: ${response.statusCode}");
         print("JSON Reçu (data): $data");
@@ -1351,17 +1284,14 @@ class AuthService extends ChangeNotifier {
         final Map<String, dynamic> user = data['user'];
 
         // Sauvegarde critique
-        await _saveAuthData(
-            token: apiToken,
-            user: user,
-            civilite: null
-        );
+        await _saveAuthData(token: apiToken, user: user, civilite: null);
 
         // 4. Gestion FCM (NON BLOQUANTE)
         // Même logique de protection que pour Apple
         try {
           print("Tentative de récupération du token FCM (Google)...");
-          final String? fcmToken = await _notificationService.initializeAndGetToken();
+          final String? fcmToken = await _notificationService
+              .initializeAndGetToken();
 
           if (fcmToken != null) {
             _sendFCMTokenToBackend(fcmToken);
@@ -1374,19 +1304,15 @@ class AuthService extends ChangeNotifier {
         }
 
         return true; // ✅ SUCCÈS GARANTI
-
       } else {
         print("Erreur loginWithGoogle (API): ${data['message']}");
         return false;
       }
-
     } catch (e) {
       print("Erreur loginWithGoogle (catch): $e");
       return false;
     }
   }
-
-
 
   /// API 1 : Envoie le token FCM au backend (après une connexion réussie)
   Future<void> _sendFCMTokenToBackend(String fcmToken) async {
@@ -1401,18 +1327,16 @@ class AuthService extends ChangeNotifier {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Bearer $_token', // <-- Important : Requête authentifiée
+          'Authorization':
+              'Bearer $_token', // <-- Important : Requête authentifiée
         },
-        body: jsonEncode({
-          "fcm_token": fcmToken
-        }),
+        body: jsonEncode({"fcm_token": fcmToken}),
       );
       print("[AuthService] Token FCM envoyé au backend avec succès.");
     } catch (e) {
       print("[AuthService] Erreur lors de l'envoi du token FCM au backend: $e");
     }
   }
-
 
   Future<List<NotificationModel>> getNotifications() async {
     if (_token == null) throw Exception("Non authentifié");
@@ -1423,7 +1347,7 @@ class AuthService extends ChangeNotifier {
     try {
       // Si l'erreur vient d'ici, on le saura
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       print("--- 2. Réponse reçue: ${response.statusCode} ---");
@@ -1461,15 +1385,12 @@ class AuthService extends ChangeNotifier {
 
         print("--- 7. Conversion terminée avec succès ---");
 
-
-
         // --- PARTIE CRUCIALE (de ta 2ème fonction) ---
         _notifications = result; // 1. Met à jour le cache local
-        notifyListeners();       // 2. Notifie l'UI (le point rouge !)
+        notifyListeners(); // 2. Notifie l'UI (le point rouge !)
         // --- FIN DE L'AJOUT ---
 
         return _notifications ?? []; // Renvoie la liste mise à jour
-
       } else {
         throw Exception("Échec du chargement des notifications");
       }
@@ -1481,18 +1402,14 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
-
-
-
   // --- API 3 : Marquer une notification comme lue ---
   Future<bool> markNotificationAsRead(String notificationId) async {
     if (_token == null) return false;
 
     // 1. CORRECTION DE L'URL (Selon l'endpoint du développeur)
-    final url = Uri.parse("$_baseUrl/notifications/$notificationId/mark-as-read");
+    final url = Uri.parse(
+      "$_baseUrl/notifications/$notificationId/mark-as-read",
+    );
 
     print("Tentative markAsRead sur : $url");
 
@@ -1501,7 +1418,7 @@ class AuthService extends ChangeNotifier {
       // NOTE : Essaie d'abord avec http.put.
       // Si tu reçois une erreur 405 (Method Not Allowed), remplace .put par .post
       final response = await _handleRequest(
-          http.put(url, headers: _authHeaders)
+        http.put(url, headers: _authHeaders),
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -1530,7 +1447,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await _handleRequest(
-          http.delete(url, headers: _authHeaders)
+        http.delete(url, headers: _authHeaders),
       );
 
       if (response.statusCode == 200) {
@@ -1544,9 +1461,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   // --- API 5 : Marquer tout comme lu (Version Finale : PUT) ---
   Future<bool> markAllNotificationsAsRead() async {
     if (_token == null) return false;
@@ -1558,7 +1472,7 @@ class AuthService extends ChangeNotifier {
     try {
       // CORRECTION : Utilisation de PUT comme confirmé par le développeur
       final response = await _handleRequest(
-          http.put(url, headers: _authHeaders)
+        http.put(url, headers: _authHeaders),
       );
 
       print("Code retour Mark All: ${response.statusCode}");
@@ -1574,15 +1488,11 @@ class AuthService extends ChangeNotifier {
 
       print("Échec Mark All Read: ${response.statusCode} - ${response.body}");
       return false;
-
     } catch (e) {
       print("[markAllNotificationsAsRead] Erreur: $e");
       return false;
     }
   }
-
-
-
 
   // --- NOUVELLE API : Supprimer toutes les notifications ---
   Future<bool> deleteAllNotifications() async {
@@ -1593,7 +1503,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await _handleRequest(
-          http.delete(url, headers: _authHeaders)
+        http.delete(url, headers: _authHeaders),
       );
 
       if (response.statusCode == 200) {
@@ -1607,16 +1517,16 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
   Future<http.Response> _handleRequest(Future<http.Response> request) async {
     http.Response response;
 
     try {
       response = await request;
+      NetworkService().setOnline();
     } catch (e) {
       // Erreur réseau (pas d'internet, etc.)
       print("Erreur réseau: $e");
+      NetworkService().setOffline();
       throw Exception("Erreur réseau. Vérifiez votre connexion.");
     }
 
@@ -1646,8 +1556,6 @@ class AuthService extends ChangeNotifier {
     return response;
   }
 
-
-
   // --- Récupérer une demande spécifique par ID ---
   Future<Map<String, dynamic>?> getMassRequestDetails(int id) async {
     if (_token == null) return null;
@@ -1658,7 +1566,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       if (response.statusCode == 200) {
@@ -1668,7 +1576,8 @@ class AuthService extends ChangeNotifier {
         if (data is Map<String, dynamic>) {
           if (data.containsKey('data')) {
             return data['data'];
-          } else if (data.containsKey('messe')) { // Parfois c'est 'messe'
+          } else if (data.containsKey('messe')) {
+            // Parfois c'est 'messe'
             return data['messe'];
           }
           return data;
@@ -1681,19 +1590,18 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   // --- NOUVEAU : Récupérer le détail via l'ID de la notification ---
   // C'EST LA SEULE FONCTION DONT ON A BESOIN
-  Future<Map<String, dynamic>?> getDetailsFromNotification(String notificationId) async {
+  Future<Map<String, dynamic>?> getDetailsFromNotification(
+    String notificationId,
+  ) async {
     if (_token == null) return null;
 
     final url = Uri.parse("$_baseUrl/notifications/detail/$notificationId");
 
     try {
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       print("--- getDetailsFromNotification ---");
@@ -1713,10 +1621,10 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
   // --- Pour les ÉVÉNEMENTS ---
-  Future<Map<String, dynamic>?> getEventDetailsFromNotification(String notificationId) async {
+  Future<Map<String, dynamic>?> getEventDetailsFromNotification(
+    String notificationId,
+  ) async {
     if (_token == null) return null;
 
     final cleanId = notificationId.trim();
@@ -1724,7 +1632,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await _handleRequest(
-          http.get(url, headers: _authHeaders)
+        http.get(url, headers: _authHeaders),
       );
 
       print("API /event/ CODE: ${response.statusCode}");
@@ -1745,9 +1653,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   /// API 1: Demande un code de réinitialisation par email (Dynamique)
   Future<bool> requestPasswordReset(String email) async {
     // 1. L'endpoint du développeur
@@ -1765,11 +1670,7 @@ class AuthService extends ChangeNotifier {
     print("AuthService: Demande de code pour $email à $url");
 
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: body,
-      );
+      final response = await http.post(url, headers: headers, body: body);
 
       print("Réponse forgot-password: ${response.statusCode}");
       print("Body: ${response.body}");
@@ -1793,9 +1694,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   /// API 2: Vérifie si le code OTP est correct (Dynamique)
   Future<bool> verifyPasswordOTP(String email, String otp) async {
     // 1. L'endpoint du développeur
@@ -1816,11 +1714,7 @@ class AuthService extends ChangeNotifier {
     print("AuthService: Vérification du code $otp pour $email");
 
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: body,
-      );
+      final response = await http.post(url, headers: headers, body: body);
 
       print("Réponse verify-otp: ${response.statusCode}");
       print("Body: ${response.body}");
@@ -1841,10 +1735,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
   /// API 3: Réinitialise le mot de passe (Dynamique)
-  Future<bool> resetPassword(String email, String otp, String newPassword) async {
+  Future<bool> resetPassword(
+    String email,
+    String otp,
+    String newPassword,
+  ) async {
     // 1. L'endpoint du développeur
     final url = Uri.parse("$_baseUrl/reset-password");
 
@@ -1859,17 +1755,14 @@ class AuthService extends ChangeNotifier {
       'email': email,
       'otp': otp,
       'password': newPassword,
-      'password_confirmation': newPassword, // Le backend demande la confirmation
+      'password_confirmation':
+          newPassword, // Le backend demande la confirmation
     });
 
     print("AuthService: Réinitialisation du mot de passe pour $email");
 
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: body,
-      );
+      final response = await http.post(url, headers: headers, body: body);
 
       print("Réponse reset-password: ${response.statusCode}");
       print("Body: ${response.body}");
@@ -1887,7 +1780,6 @@ class AuthService extends ChangeNotifier {
       return false; // Échec de la connexion
     }
   }
-
 
   // (Assure-toi d'avoir 'dart:convert' et 'http' importés)
 
@@ -1921,9 +1813,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
-
   // Modifie le type de retour : Future<Map<String, dynamic>>
   Future<Map<String, dynamic>> deleteAccount(String password) async {
     if (!_isAuthenticated) {
@@ -1936,13 +1825,12 @@ class AuthService extends ChangeNotifier {
     // Copie tes headers actuels et ajoute le Content-Type si ce n'est pas déjà fait
     final Map<String, String> headers = {
       ..._authHeaders,
-      'Content-Type': 'application/json', // INDISPENSABLE pour envoyer le password
+      'Content-Type':
+          'application/json', // INDISPENSABLE pour envoyer le password
       'Accept': 'application/json',
     };
 
-    final body = jsonEncode({
-      "password": password
-    });
+    final body = jsonEncode({"password": password});
 
     print("Tentative de suppression avec body: $body");
 
@@ -1960,7 +1848,8 @@ class AuthService extends ChangeNotifier {
       } else {
         // 2. ON RENVOIE L'ERREUR EXACTE DU SERVEUR
         // Si le serveur renvoie un message, on le prend. Sinon on met le code d'erreur.
-        String serverMessage = data['message'] ?? "Erreur inconnue (${response.statusCode})";
+        String serverMessage =
+            data['message'] ?? "Erreur inconnue (${response.statusCode})";
         return {'success': false, 'message': serverMessage};
       }
     } catch (e) {
@@ -1968,9 +1857,6 @@ class AuthService extends ChangeNotifier {
       return {'success': false, 'message': "Erreur technique : $e"};
     }
   }
-
-
-
 
   /// Helper pour vider les SharedPreferences (tu l'as peut-être déjà pour logout)
   Future<void> _clearAuthData() async {
@@ -1991,12 +1877,10 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-
-
   // --- NOUVEAU : Paiement CinetPay ---
   Future<String?> initierPaiementCinetPay({
     required int messeId,
-    required double montant
+    required double montant,
   }) async {
     try {
       final url = Uri.parse('$_baseUrl/paiement/cinetpay/initier');
@@ -2027,7 +1911,9 @@ class AuthService extends ChangeNotifier {
           // On retourne l'URL de paiement reçue
           return data['payment_url'];
         } else {
-          throw Exception(data['message'] ?? "Erreur lors de l'initialisation CinetPay");
+          throw Exception(
+            data['message'] ?? "Erreur lors de l'initialisation CinetPay",
+          );
         }
       } else {
         throw Exception("Erreur serveur: ${response.statusCode}");
@@ -2038,29 +1924,27 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
-
   // --- NOUVEAU : Enregistrer la fiche fidèles (Multipart pour la photo) ---
   Future<void> submitIdentification({
-    required String nomPrenom,          // Backend: nom_prenom
-    required String dateNaissance,      // Backend: date_naissance
-    required String sexe,               // Backend: sexe
+    required String nomPrenom, // Backend: nom_prenom
+    required String dateNaissance, // Backend: date_naissance
+    required String sexe, // Backend: sexe
     required String situationMatrimoniale, // Backend: situation_matrimoniale
-    required String adresse,            // Backend: adresse
-    required String statutActivite,     // Backend: statut_activite
-    required String nomParoisse,        // Backend: nom_paroisse
-    required String telephone,          // Backend: telephone
-    required bool estDansMouvement,     // Backend: est_dans_mouvement
-    String? nomMouvement,               // Backend: nom_mouvement
-    required bool estBaptise,           // Backend: est_baptise
-    String? dateBapteme,                // Backend: date_bapteme
+    required String adresse, // Backend: adresse
+    required String statutActivite, // Backend: statut_activite
+    required String nomParoisse, // Backend: nom_paroisse
+    required String telephone, // Backend: telephone
+    required bool estDansMouvement, // Backend: est_dans_mouvement
+    String? nomMouvement, // Backend: nom_mouvement
+    required bool estBaptise, // Backend: est_baptise
+    String? dateBapteme, // Backend: date_bapteme
     String? nomParoisseBapteme,
-    File? photo,                        // Backend: photo
+    File? photo, // Backend: photo
   }) async {
-
     // 1. Vérification auth
     // Si tu as un token stocké, récupère-le ici
-    final token = await _token; // Assure-toi d'avoir cette méthode ou utilise ta variable _token
+    final token =
+        await _token; // Assure-toi d'avoir cette méthode ou utilise ta variable _token
 
     final uri = Uri.parse("$_baseUrl/paroissien/store");
 
@@ -2092,9 +1976,7 @@ class AuthService extends ChangeNotifier {
       request.fields['date_bapteme'] = dateBapteme;
     }
 
-
     request.fields['nom_paroisse_bapteme'] = nomParoisseBapteme ?? "";
-
 
     // 5. Ajout de la Photo (si elle existe)
     if (photo != null) {
@@ -2124,29 +2006,24 @@ class AuthService extends ChangeNotifier {
       // Vérification selon le format du backend ("status": true)
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (data['status'] == true) {
-
           // On utilise les données confirmées par le serveur (data['data'])
           if (data['data'] != null) {
             await _updateLocalUserData(data['data']);
           } // ⚠️ TRES IMPORTANT : Dit à l'écran de se rafraîchir
           return;
-
         } else {
           throw Exception(data['message'] ?? "Erreur lors de l'enregistrement");
         }
       } else {
-        throw Exception(data['message'] ?? "Erreur serveur (${response.statusCode})");
+        throw Exception(
+          data['message'] ?? "Erreur serveur (${response.statusCode})",
+        );
       }
     } catch (e) {
       print("Erreur submitIdentification: $e");
       rethrow;
     }
   }
-
-
-
-
-
 
   // --- NOUVEAU : Récupérer les détails du paroissien (GET) ---
   Future<Map<String, dynamic>?> getParoissien(int id) async {
@@ -2183,9 +2060,6 @@ class AuthService extends ChangeNotifier {
       rethrow;
     }
   }
-
-
-
 
   // --- MISE À JOUR (VERSION UNIFIÉE : TOUJOURS MULTIPART) ---
   Future<void> updateParoissien({
@@ -2239,7 +2113,6 @@ class AuthService extends ChangeNotifier {
       request.fields['date_bapteme'] = dateBapteme;
     }
 
-
     // ✅ 2. AJOUT DU CHAMP DANS LA REQUÊTE
     request.fields['nom_paroisse_bapteme'] = nomParoisseBapteme ?? "";
 
@@ -2268,26 +2141,25 @@ class AuthService extends ChangeNotifier {
       final data = jsonDecode(response.body);
 
       // On accepte 200 ou 201
-      if ((response.statusCode == 200 || response.statusCode == 201) && data['status'] == true) {
-
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          data['status'] == true) {
         // Mise à jour locale des données
         if (data['data'] != null) {
           await _updateLocalUserData(data['data']);
         }
         return;
-
       } else {
         // Si c'est encore "Action non autorisée", le problème vient peut-être de l'ID
-        throw Exception(data['message'] ?? "Erreur lors de la mise à jour (${response.statusCode})");
+        throw Exception(
+          data['message'] ??
+              "Erreur lors de la mise à jour (${response.statusCode})",
+        );
       }
-
     } catch (e) {
       print("Erreur updateParoissien: $e");
       rethrow;
     }
   }
-
-
 
   // --- HELPER PRIVÉ : Met à jour les variables locales et SharedPreferences ---
   Future<void> _updateLocalUserData(Map<String, dynamic> data) async {
@@ -2299,7 +2171,10 @@ class AuthService extends ChangeNotifier {
 
     // Gestion robuste du booléen est_baptise (API peut renvoyer 1, "1", true)
     if (data['est_baptise'] != null) {
-      _estBaptise = data['est_baptise'] == 1 || data['est_baptise'] == true || data['est_baptise'] == "1";
+      _estBaptise =
+          data['est_baptise'] == 1 ||
+          data['est_baptise'] == true ||
+          data['est_baptise'] == "1";
     }
 
     // 2. Mise à jour SharedPreferences (Disque)
@@ -2310,8 +2185,6 @@ class AuthService extends ChangeNotifier {
     // 3. Notifier les écrans (Home, Profil...)
     notifyListeners();
   }
-
-
 
   // --- NOUVEAU : Supprimer une demande de messe ---
   Future<bool> deleteMassRequest(int id) async {
@@ -2344,11 +2217,4 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
-
-
-
-
 }
-
-
-

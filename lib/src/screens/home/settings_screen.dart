@@ -16,7 +16,7 @@ import 'package:maparoisse/providers/theme_provider.dart';
 import 'package:maparoisse/src/screens/home/theme_selection_screen.dart';
 import 'package:maparoisse/src/screens/home/font_size_selection_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:maparoisse/src/screens/password_reset/forgot_password_screen.dart';
+import 'package:maparoisse/src/screens/home/security_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -140,8 +140,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           icon: Icons.lock_outline,
                           text: l10n.settingsChangePassword,
                           onTap: () {
-                            // --- NAVIGATION VERS ChangePasswordScreen ---
-                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
+                            // --- NAVIGATION VERS SecurityScreen (Mise à jour mot de passe) ---
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SecurityScreen()));
                             // --- FIN NAVIGATION ---
                           },
                         ),
@@ -653,6 +653,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       barrierDismissible: false,
       builder: (context) {
         String input = '';
+        bool obscurePassword = true;
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
 
@@ -675,35 +676,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ✅ CORRECTION 2 : TextField stylisé pour le sombre
-              TextField(
-                obscureText: true,
-                autofocus: true,
-                style: TextStyle(color: theme.colorScheme.onSurface), // Couleur de saisie
-                onChanged: (value) => input = value,
-                decoration: InputDecoration(
-                  labelText: "Mot de passe",
-                  labelStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
-                  prefixIcon: Icon(Icons.lock_outline, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+              // ✅ CORRECTION 2 : TextField stylisé pour le sombre avec bouton œil
+              StatefulBuilder(
+                builder: (context, setDialogState) {
+                  return TextField(
+                    obscureText: obscurePassword,
+                    autofocus: true,
+                    style: TextStyle(color: theme.colorScheme.onSurface), // Couleur de saisie
+                    onChanged: (value) => input = value,
+                    decoration: InputDecoration(
+                      labelText: "Mot de passe",
+                      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                      prefixIcon: Icon(Icons.lock_outline, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                        onPressed: () => setDialogState(() => obscurePassword = !obscurePassword),
+                      ),
 
-                  // Fond du champ
-                  filled: true,
-                  fillColor: theme.inputDecorationTheme.fillColor ?? theme.scaffoldBackgroundColor,
+                      // Fond du champ
+                      filled: true,
+                      fillColor: theme.inputDecorationTheme.fillColor ?? theme.scaffoldBackgroundColor,
 
-                  // Bordures dynamiques (gris foncé en sombre, gris clair en blanc)
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: theme.dividerColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: theme.dividerColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: theme.primaryColor),
-                  ),
-                ),
+                      // Bordures dynamiques (gris foncé en sombre, gris clair en blanc)
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.primaryColor),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

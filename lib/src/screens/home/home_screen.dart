@@ -18,6 +18,8 @@ import 'package:in_app_update/in_app_update.dart';
 import 'package:upgrader/upgrader.dart';
 import 'dart:io';
 import 'package:text_scroll/text_scroll.dart';
+import '../../services/network_service.dart';
+import '../../widgets/network_notification_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   // Garde les callbacks si tu en as besoin pour la navigation depuis HomeScreen
@@ -247,11 +249,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     } catch (e) {
       print("Erreur _loadData HomeScreen: $e");
-      // Optionnel : Afficher un petit message d'erreur discret si le refresh échoue
       if (mounted && isRefresh) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erreur d'actualisation"), backgroundColor: Colors.red)
-        );
+        NetworkNotificationHelper.showOffline(context);
       }
     } finally {
       if (mounted) {
@@ -614,18 +613,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       : null,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  l10n.online,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.greenAccent
-                        : Colors.green[600],
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-                    .animate(onPlay: (c) => c.repeat(reverse: true))
-                    .fade(duration: 1000.ms, begin: 0.4, end: 1.0),
+                Consumer<NetworkService>(
+                  builder: (context, network, _) {
+                    final bool isOnline = network.isOnline;
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    return Text(
+                      isOnline ? l10n.online : "Hors ligne",
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isOnline
+                            ? (isDark ? Colors.greenAccent : Colors.green[600])
+                            : (isDark ? const Color(0xFFEF4444) : Colors.red[600]),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .fade(duration: 1000.ms, begin: 0.4, end: 1.0);
+                  },
+                ),
               ],
             ),
           ),

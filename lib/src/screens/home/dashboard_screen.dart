@@ -16,9 +16,8 @@ import 'package:flutter/services.dart'; // Pour contrôler le système
 import 'package:maparoisse/src/screens/password_reset/reset_password_screen.dart';
 import 'dart:async'; // Pour StreamSubscription
 import 'package:app_links/app_links.dart'; // NOUVEL IMPORT
-
-
-
+import '../../services/network_service.dart';
+import '../../widgets/network_notification_helper.dart';
 
 
 
@@ -42,12 +41,32 @@ class DashboardScreenWithIndex extends StatefulWidget {
 class _DashboardScreenWithIndexState extends State<DashboardScreenWithIndex> {
   late int _currentIndex;
 
-
-// (Dans ta classe State)
   StreamSubscription<Uri>? _linkSubscription;
   final _appLinks = AppLinks(); // L'objet du nouveau package
+  bool? _lastOnlineState;
 
+  void _onNetworkStateChanged() {
+    if (!mounted) return;
+    final network = Provider.of<NetworkService>(context, listen: false);
+    final isOnline = network.isOnline;
 
+    if (_lastOnlineState == null) {
+      _lastOnlineState = isOnline;
+      if (!isOnline) {
+        NetworkNotificationHelper.showOffline(context);
+      }
+      return;
+    }
+
+    if (_lastOnlineState != isOnline) {
+      _lastOnlineState = isOnline;
+      if (!isOnline) {
+        NetworkNotificationHelper.showOffline(context);
+      } else {
+        NetworkNotificationHelper.showOnline(context);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -66,15 +85,23 @@ class _DashboardScreenWithIndexState extends State<DashboardScreenWithIndex> {
     // Vérification après le rendu de la page
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstTimeTutorial();
+
+      // Écoute de l'état réseau
+      final network = Provider.of<NetworkService>(context, listen: false);
+      network.addListener(_onNetworkStateChanged);
+      _lastOnlineState = network.isOnline;
+      if (!network.isOnline) {
+        NetworkNotificationHelper.showOffline(context);
+      }
     });
-
-
   }
-
-
 
   @override
   void dispose() {
+    try {
+      final network = Provider.of<NetworkService>(context, listen: false);
+      network.removeListener(_onNetworkStateChanged);
+    } catch (_) {}
     _linkSubscription?.cancel(); // N'oublie pas de l'arrêter
     super.dispose();
   }
@@ -106,65 +133,98 @@ class _DashboardScreenWithIndexState extends State<DashboardScreenWithIndex> {
       if (!mounted) return;
 
       // ... (Le reste de ton code pour afficher le modal reste identique) ...
-      // 2. On affiche le Modal joli
-      showModalBottomSheet(
+      // 2. On affiche le Popup centré
+      showDialog(
         context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Illustration (Lottie ou Image)
-              const Icon(Icons.live_tv_rounded, size: 60, color: Color(0xFFC0A040)), // Ocre
-              const SizedBox(height: 16),
+        barrierDismissible: true,
+        builder: (context) {
+          final theme = Theme.of(context);
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: theme.scaffoldBackgroundColor,
+            elevation: 8,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Illustration
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC0A040).withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.live_tv_rounded,
+                        size: 48,
+                        color: Color(0xFFC0A040), // Ocre
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-              Text(
-                "Bienvenue sur E-Messe !",
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "Pour vous aider à démarrer, nous avons préparé quelques vidéos courtes pour vous montrer comment demander une messe simplement.",
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
+                    Text(
+                      "Bienvenue sur E-Messe !",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Pour vous aider à démarrer, nous avons préparé quelques vidéos courtes pour vous montrer comment demander une messe simplement.",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 28),
 
-              // Bouton : Voir maintenant
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.play_circle_outline),
-                  label: const Text("Regarder les tutoriels"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC0A040),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context); // Ferme le modal
-                    // Va vers l'écran Tutos
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorialsScreen()));
-                  },
+                    // Bouton : Voir maintenant
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.play_circle_outline, color: Colors.white),
+                        label: const Text(
+                          "Regarder les tutoriels",
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC0A040),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context); // Ferme le modal
+                          // Va vers l'écran Tutos
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorialsScreen()));
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Bouton : Plus tard
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onSurface.withOpacity(0.6),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                      ),
+                      child: const Text("Plus tard", style: TextStyle(fontSize: 15)),
+                    ),
+                  ],
                 ),
               ),
-
-              // Bouton : Plus tard
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Plus tard", style: TextStyle(color: Colors.grey[600])),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
     }
   }

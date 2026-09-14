@@ -525,6 +525,7 @@ class __PasswordVerificationSheetState
   final _passwordController = TextEditingController();
   bool _isModalLoading = false;
   String? _modalError;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -608,12 +609,19 @@ class __PasswordVerificationSheetState
           const SizedBox(height: 24),
           TextField(
             controller: _passwordController,
-            obscureText: true,
+            obscureText: _obscurePassword,
             autofocus: true, // Ouvre le clavier directement
             style: TextStyle(color: theme.colorScheme.onSurface), // Couleur de la saisie
             decoration: InputDecoration(
               labelText: l10n.currentPassword,
-              prefixIcon: Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               ),

@@ -9,6 +9,7 @@ import 'package:provider/provider.dart'; // <-- AJOUTE cet import
 import '../../services/auth_service.dart'; // <-- MODIFIE cet import
 import 'package:maparoisse/src/screens/home/parish_detail_screen.dart';
 import 'package:maparoisse/src/widgets/request_detail_modal.dart';
+import '../../widgets/network_notification_helper.dart';
 
 // Retire les imports non utilisés comme AnimatedHeader, ModernCard, etc. si tu ne les utilises plus ici
 
@@ -161,14 +162,15 @@ class _RequestsListScreenState extends State<RequestsListScreen> with TickerProv
         });
       }
     } catch (e) {
+      print("Erreur _loadData RequestsListScreen: $e");
       if (mounted) {
         setState(() {
           _isLoading = false;
           _isRefreshing = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erreur de chargement: $e"), backgroundColor: AppTheme.errorColor)
-        );
+        if (isRefresh && bottomNavIndex.value == 3) {
+          NetworkNotificationHelper.showOffline(context);
+        }
       }
     }
   }

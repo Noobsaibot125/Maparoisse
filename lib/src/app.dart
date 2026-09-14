@@ -16,6 +16,8 @@ import 'package:maparoisse/src/services/navigation_service.dart';
 
 
 
+import 'services/network_service.dart';
+
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 
@@ -28,6 +30,7 @@ class ParoisseApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => NetworkService()..init()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => FontSizeProvider()),

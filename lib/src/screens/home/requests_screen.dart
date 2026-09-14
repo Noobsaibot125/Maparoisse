@@ -11,6 +11,8 @@ import '../../app_themes.dart';
 import 'dart:async';
 import 'package:maparoisse/src/screens/home/dashboard_screen.dart';
 import 'package:maparoisse/src/widgets/request_detail_modal.dart';
+import '../../widgets/network_notification_helper.dart';
+import '../../../utils/navigation_state.dart';
 
 
 class RequestsScreen extends StatefulWidget {
@@ -135,7 +137,10 @@ class _RequestsScreenState extends State<RequestsScreen>
       });
     }
   } catch (e) {
-    _showError("Erreur de chargement des paroisses: $e");
+    print("Erreur de chargement des paroisses: $e");
+    if (mounted && bottomNavIndex.value == 2) {
+      NetworkNotificationHelper.showOffline(context);
+    }
   }
   }
 
