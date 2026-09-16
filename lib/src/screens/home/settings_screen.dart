@@ -5,9 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../providers/font_size_provider.dart';
 import '../../app_themes.dart'; // Vérifie le chemin
 import '../../services/auth_service.dart';
-import 'package:google_fonts/google_fonts.dart'; // Pour les polices
 import 'package:maparoisse/l10n/app_localizations.dart'; // Ajuste le chemin si nécessaire
-import 'package:maparoisse/src/screens/home/edit_profile_screen.dart';
+
 import 'package:maparoisse/src/screens/home/language_selection_screen.dart';
 import 'package:maparoisse/providers/locale_provider.dart';
 import 'package:maparoisse/src/screens/home/faq_help_screen.dart';
@@ -16,7 +15,7 @@ import 'package:maparoisse/providers/theme_provider.dart';
 import 'package:maparoisse/src/screens/home/theme_selection_screen.dart';
 import 'package:maparoisse/src/screens/home/font_size_selection_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:maparoisse/src/screens/home/security_screen.dart';
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -120,34 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    _buildSettingsCard(
-                      title: l10n.settingsAccountSectionTitle,
-                      children: [
-                        _buildSettingsItem(
-                          icon: Icons.person_outline,
-                          text: l10n.settingsEditProfile,
-                          onTap: () {
-                            // --- NAVIGATION VERS EditProfileScreen ---
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                            );
-                            // --- FIN NAVIGATION ---
-                          },
-                        ),
-                        const Divider(height: 1), // Séparateur
-                        _buildSettingsItem(
-                          icon: Icons.lock_outline,
-                          text: l10n.settingsChangePassword,
-                          onTap: () {
-                            // --- NAVIGATION VERS SecurityScreen (Mise à jour mot de passe) ---
-                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SecurityScreen()));
-                            // --- FIN NAVIGATION ---
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+
                     _buildSettingsCard(
                       title: l10n.settingsNotificationsSectionTitle,
                       children: [
@@ -360,9 +332,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 30),
-                    // --- BOUTON MODIFIÉ POUR LA SUPPRESSION ---
+
+                    // --- BOUTON POUR LA SUPPRESSION ---
                     ElevatedButton(
-                      onPressed: _showDeleteAccountDialog, // Nouvelle fonction
+                      onPressed: _showDeleteAccountDialog,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.errorColor, // Couleur de danger (rouge)
                         foregroundColor: Colors.white,
@@ -371,12 +344,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         "Supprimer mon compte", // TODO: Ajoute ceci à l10n (ex: settingsDeleteAccountButton)
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    // --- FIN MODIFICATION ---
                     const SizedBox(height: 10), // Espace en bas
                   ],
                 ),
@@ -447,94 +419,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // --- Widgets Réutilisables ---
 
-  void _showLogoutDialog() async {
-    final l10n = AppLocalizations.of(context)!;
-    // ... (votre code existant, inchangé)
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 20,
-        shadowColor: Colors.black.withOpacity(0.3),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.errorColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.logout_rounded,
-                color: AppTheme.errorColor,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              l10n.drawerLogoutTitle,
-              style: GoogleFonts.cormorantGaramond(
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          l10n.drawerLogoutMessage,
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
-            child: Text(
-              l10n.drawerLogoutCancel,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            child: Text(
-              l10n.drawerLogoutConfirm,
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
 
-    if (shouldLogout == true && context.mounted) {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      await auth.logout();
-
-      if (context.mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
-      }
-    }
-  }
 
 
   // --- FONCTION FINALE DE SUPPRESSION (CORRIGÉE MODE SOMBRE) ---

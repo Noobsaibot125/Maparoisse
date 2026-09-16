@@ -16,8 +16,8 @@ import 'package:maparoisse/src/services/network_service.dart';
 class AuthService extends ChangeNotifier {
   // --- NOUVELLE BASE URL POUR L'API ---
 
-  static const String _baseUrl = "https://exclusively-untoppled-forest.ngrok-free.dev/api";
-  //static const String _baseUrl = "https://e-messe-ci.com/api";
+ // static const String _baseUrl = "https://exclusively-untoppled-forest.ngrok-free.dev/api";
+  static const String _baseUrl = "https://e-messe-ci.com/api";
 
   // --- 1. AJOUTE CETTE LIGNE ---
   /// La liste des notifications en cache pour l'application.

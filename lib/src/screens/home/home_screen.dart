@@ -6,13 +6,13 @@ import '../../app_themes.dart';
 import '../../services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:maparoisse/src/screens/home/edit_profile_screen.dart';
 import 'package:maparoisse/src/screens/home/notifications_screen.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:collection/collection.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:maparoisse/src/screens/home/settings_screen.dart';
+import 'package:maparoisse/src/screens/home/profile_screen.dart';
 import 'package:maparoisse/src/screens/home/identification_screen.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:upgrader/upgrader.dart';
@@ -589,12 +589,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // --- 1. AVATAR (Inchangé) ---
+        // --- 1. AVATAR ---
         InkWell(
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
             );
           },
           borderRadius: BorderRadius.circular(8),
