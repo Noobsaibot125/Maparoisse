@@ -360,6 +360,15 @@
     "description": "Label shown for the female title (stored value: Mme)"
   },
 
+  "registerStepCounter": "Step {current} of {total}",
+  "@registerStepCounter": {
+    "description": "Registration wizard progress",
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
   "unknownError": "An error occurred.",
   "@unknownError": {
     "description": "Generic error"

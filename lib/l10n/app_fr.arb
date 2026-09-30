@@ -382,6 +382,15 @@
     "description": "Libellé affiché pour la civilité féminine (valeur stockée: Mme)"
   },
 
+  "registerStepCounter": "Étape {current} sur {total}",
+  "@registerStepCounter": {
+    "description": "Progression de l'assistant d'inscription",
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
   "unknownError": "Une erreur est survenue.",
   "@unknownError": {
     "description": "Erreur générique"

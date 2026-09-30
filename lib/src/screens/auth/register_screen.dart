@@ -506,29 +506,47 @@ class _RegisterScreenState extends State<RegisterScreen>
                   children: [
                     // --- Stepper ---
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(3, (index) {
-                          bool isActive = index == _currentStep;
-                          bool isCompleted = index < _currentStep;
-                          Color circleColor = isActive || isCompleted ? primaryColor : Colors.transparent;
-                          // ✅ Bordure grise adaptée au mode sombre
-                          Color borderColor = isActive || isCompleted ? primaryColor : theme.dividerColor;
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(3, (index) {
+                              // L'étape courante s'allonge : on voit d'un coup
+                              // d'œil où l'on se trouve, pas seulement combien
+                              // d'étapes sont franchies.
+                              final bool isReached = index <= _currentStep;
+                              final bool isActive = index == _currentStep;
 
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              width: 16, height: 16,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: circleColor,
-                                border: Border.all(color: borderColor, width: 1.5),
-                              ),
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOut,
+                                  height: 6,
+                                  width: isActive ? 34 : 16,
+                                  decoration: BoxDecoration(
+                                    color: isReached
+                                        ? primaryColor
+                                        : theme.dividerColor,
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            l10n.registerStepCounter(_currentStep + 1, 3),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.45),
                             ),
-                          );
-                          }),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -556,12 +574,23 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 style: OutlinedButton.styleFrom(
                                   // ✅ Couleur texte et bordure dynamique
                                   foregroundColor: theme.colorScheme.onSurface,
-                                  side: BorderSide(color: theme.colorScheme.onSurface),
+                                  // Bordure adoucie : le trait plein concurrençait
+                                  // visuellement le bouton principal.
+                                  side: BorderSide(
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.25),
+                                  ),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  minimumSize: const Size(0, 54),
                                 ),
                                 onPressed: _previousStep,
-                                child: Text(l10n.registerBtnPrev),
+                                child: Text(
+                                  l10n.registerBtnPrev,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
                           if (_currentStep > 0) const SizedBox(width: 16),
@@ -570,13 +599,20 @@ class _RegisterScreenState extends State<RegisterScreen>
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryColor,
                                 foregroundColor: Colors.white,
+                                elevation: 0,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                minimumSize: const Size(0, 54),
                               ),
                               onPressed: _isLoading ? null : _nextStep,
                               child: _isLoading && _currentStep == 2
                                   ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : Text(_currentStep == 2 ? 'Terminer' : l10n.registerBtnNext),
+                                  : Text(
+                                      _currentStep == 2 ? 'Terminer' : l10n.registerBtnNext,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                             ),
                           ),
                         ],
@@ -796,7 +832,6 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Widget _buildPersonalInfoStep() {
     final theme = Theme.of(context);
-    const Color primaryColor = Color(0xFFC0A040);
     final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
@@ -829,31 +864,16 @@ class _RegisterScreenState extends State<RegisterScreen>
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: ModernCard(
-                    // ✅ Assure-toi que ModernCard utilise cardTheme.color par défaut
-                    // backgroundColor: theme.cardTheme.color,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    onTap: () => setState(() => _civilite = 'M.'),
-                    borderColor: _civilite == 'M.' ? primaryColor : null,
-                    backgroundColor: _civilite == 'M.' ? primaryColor.withOpacity(0.1) : theme.cardTheme.color, // ✅ Fond carte
-
-                    child: Center(child: Text(l10n.registerGenderMale, style: TextStyle(fontWeight: FontWeight.w600,
-                        // ✅ Couleur texte sélectionné ou normal
-                        color: _civilite == 'M.' ? primaryColor : theme.colorScheme.onSurface))),
-                  ),
+                _buildCiviliteOption(
+                  value: 'M.',
+                  label: l10n.registerGenderMale,
+                  icon: Icons.male,
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: ModernCard(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    onTap: () => setState(() => _civilite = 'Mme'),
-                    borderColor: _civilite == 'Mme' ? primaryColor : null,
-                    backgroundColor: _civilite == 'Mme' ? primaryColor.withOpacity(0.1) : theme.cardTheme.color, // ✅ Fond carte
-                    child: Center(child: Text(l10n.registerGenderFemale, style: TextStyle(fontWeight: FontWeight.w600,
-                        // ✅ Couleur texte sélectionné ou normal
-                        color: _civilite == 'Mme' ? primaryColor : theme.colorScheme.onSurface))),
-                  ),
+                _buildCiviliteOption(
+                  value: 'Mme',
+                  label: l10n.registerGenderFemale,
+                  icon: Icons.female,
                 ),
               ],
             ).animate().fadeIn(duration: 600.ms, delay: 300.ms),
@@ -1068,6 +1088,59 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Carte de civilité sélectionnable (même rendu que la finalisation Google).
+  Widget _buildCiviliteOption({
+    required String value,
+    required String label,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    final bool selected = _civilite == value;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _civilite = value),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: selected
+                ? _primaryColor.withOpacity(0.10)
+                : theme.cardTheme.color,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+            border: Border.all(
+              color: selected ? _primaryColor : theme.dividerColor,
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 26,
+                color: selected
+                    ? _primaryColor
+                    : theme.colorScheme.onSurface.withOpacity(0.45),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: selected
+                      ? _primaryColor
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

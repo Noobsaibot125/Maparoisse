@@ -1472,6 +1472,12 @@ abstract class AppLocalizations {
   /// **'Femme'**
   String get civiliteFemale;
 
+  /// Progression de l'assistant d'inscription
+  ///
+  /// In fr, this message translates to:
+  /// **'Étape {current} sur {total}'**
+  String registerStepCounter(int current, int total);
+
   /// Erreur générique
   ///
   /// In fr, this message translates to:

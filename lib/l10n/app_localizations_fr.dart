@@ -727,6 +727,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get civiliteFemale => 'Femme';
 
   @override
+  String registerStepCounter(int current, int total) {
+    return 'Étape $current sur $total';
+  }
+
+  @override
   String get unknownError => 'Une erreur est survenue.';
 
   @override
