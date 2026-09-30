@@ -257,16 +257,16 @@ class _DashboardScreenWithIndexState extends State<DashboardScreenWithIndex> {
   void _handleDeepLink(Uri uri) {
     // On vérifie si c'est bien notre lien "maparoisse://reset-password"
     if (uri.scheme == 'maparoisse' && uri.host == 'reset-password') {
-      // On extrait les infos
-      final email = uri.queryParameters['email'];
+      // On extrait les infos (téléphone ou e-mail en fallback)
+      final phone = uri.queryParameters['phone'] ?? uri.queryParameters['email'];
       final otp = uri.queryParameters['otp'];
 
-      if (email != null && otp != null) {
-        print("Navigation vers ResetPassword avec Email: $email et OTP: $otp");
+      if (phone != null && otp != null) {
+        print("Navigation vers ResetPassword avec Phone: $phone et OTP: $otp");
 
         // On navigue vers l'écran de changement de mot de passe
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(email: email, otp: otp),
+          builder: (_) => ResetPasswordScreen(phone: phone, otp: otp),
         ));
       }
     }

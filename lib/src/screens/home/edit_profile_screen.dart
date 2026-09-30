@@ -30,8 +30,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
-  // Options pour la civilité
-  final List<String> _civiliteOptions = ['M.', 'Mme', 'Mlle'];
+  // Valeurs enregistrées en base ; les libellés affichés sont traduits.
+  static const List<String> _civiliteValues = ['M.', 'Mme'];
 
   @override
   void initState() {
@@ -41,7 +41,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.text = auth.fullName ?? '';
     _emailController.text = auth.email ?? '';
     _phoneController.text = auth.phone ?? '';
-    _selectedCivilite = auth.civilite;
+
+    // 'Mlle' n'est plus proposé : on le ramène sur 'Mme'. Toute autre valeur
+    // inattendue est ignorée, car le Dropdown lève une exception si sa valeur
+    // courante ne figure pas parmi ses items.
+    final stored = auth.civilite == 'Mlle' ? 'Mme' : auth.civilite;
+    _selectedCivilite = _civiliteValues.contains(stored) ? stored : null;
     _initialPhotoPath = auth.photoPath; // Récupère le chemin stocké
   }
 
@@ -131,7 +136,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     } catch (e) {
       print("Erreur _saveProfile: $e");
-      if (mounted) _showError('Une erreur inattendue est survenue.');
+      // Message du serveur (ex: numéro déjà utilisé par un autre compte).
+      if (mounted) _showError(e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -330,9 +336,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               // --- Champ Civilité ---
               DropdownButtonFormField<String>(
                 value: _selectedCivilite,
-                items: _civiliteOptions.map((civilite) {
-                  return DropdownMenuItem(value: civilite, child: Text(civilite));
-                }).toList(),
+                items: [
+                  DropdownMenuItem(value: 'M.', child: Text(l10n.civiliteMale)),
+                  DropdownMenuItem(value: 'Mme', child: Text(l10n.civiliteFemale)),
+                ],
                 onChanged: (value) {
                   setState(() => _selectedCivilite = value);
                 },

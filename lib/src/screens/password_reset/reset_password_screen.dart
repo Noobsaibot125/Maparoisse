@@ -5,14 +5,15 @@ import 'package:provider/provider.dart';
 import 'package:maparoisse/src/services/auth_service.dart';
 import 'package:maparoisse/src/app_themes.dart';
 import 'package:maparoisse/src/widgets/loader_widget.dart';
+import 'package:maparoisse/src/widgets/app_notice_dialog.dart';
 import 'package:maparoisse/src/screens/auth/login_screen.dart';
 
 import '../../../l10n/app_localizations.dart'; // Pour la redirection
 
 class ResetPasswordScreen extends StatefulWidget {
-  final String email;
+  final String phone;
   final String otp;
-  const ResetPasswordScreen({Key? key, required this.email, required this.otp}) : super(key: key);
+  const ResetPasswordScreen({Key? key, required this.phone, required this.otp}) : super(key: key);
 
   @override
   _ResetPasswordScreenState createState() => _ResetPasswordScreenState();
@@ -30,6 +31,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureConfirmPassword = true;
 
   Future<void> _resetPassword() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -37,7 +40,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     try {
       final success = await authService.resetPassword(
-        widget.email,
+        widget.phone,
         widget.otp,
         _passCtrl.text,
       );
@@ -45,10 +48,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (!mounted) return;
 
       if (success) {
-        // Succès ! On affiche un message et on retourne au Login
+        // L'ancien jeton n'est plus valable après un changement de mot de
+        // passe : sans cette purge, un utilisateur venu du profil resterait
+        // marqué comme connecté tout en voyant l'écran de connexion.
+        await authService.logout(apiCall: false);
+
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("Mot de passe changé avec succès !"),
+            content: Text(l10n.passwordChangedSuccess),
             backgroundColor: AppTheme.successColor,
           ),
         );
@@ -59,10 +68,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               (route) => false, // Supprime toutes les routes précédentes
         );
       } else {
-        _showError("Impossible de changer le mot de passe. Le code a peut-être expiré.");
+        _showError(l10n.resetFailed);
       }
     } catch (e) {
-      _showError("Une erreur est survenue.");
+      _showError(l10n.unknownError);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -217,8 +226,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppTheme.errorColor),
+    final bool isNetworkError =
+        message.contains('Internet') || message.contains('connexion');
+
+    showAppNoticeDialog(
+      context,
+      message: message,
+      icon: isNetworkError ? Icons.wifi_off : Icons.error_outline,
+      iconColor: isNetworkError ? Colors.grey.shade700 : null,
     );
   }
 }

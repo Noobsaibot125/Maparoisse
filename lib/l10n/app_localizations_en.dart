@@ -697,7 +697,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendCode => 'Send Code';
 
   @override
-  String get emailSendError => 'Unable to send email. Check the address.';
+  String get smsSendError =>
+      'Unable to send the SMS. Please check your number and try again.';
+
+  @override
+  String get phoneNotCurrentAccount =>
+      'This is not your account\'s number. Enter the number you are signed in with.';
+
+  @override
+  String get dialogNoticeTitle => 'Notice';
+
+  @override
+  String get civiliteMale => 'Male';
+
+  @override
+  String get civiliteFemale => 'Female';
 
   @override
   String get unknownError => 'An error occurred.';

@@ -1442,11 +1442,35 @@ abstract class AppLocalizations {
   /// **'Envoyer le code'**
   String get sendCode;
 
-  /// Erreur si l'envoi échoue
+  /// Erreur si l'envoi du SMS contenant le code OTP échoue
   ///
   /// In fr, this message translates to:
-  /// **'Impossible d\'envoyer l\'e-mail. Vérifiez l\'adresse.'**
-  String get emailSendError;
+  /// **'Impossible d\'envoyer le SMS. Vérifiez votre numéro et réessayez.'**
+  String get smsSendError;
+
+  /// Erreur quand un utilisateur connecté saisit un numéro différent du sien pour changer son mot de passe
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce numéro n\'est pas celui de votre compte. Saisissez le numéro avec lequel vous êtes connecté.'**
+  String get phoneNotCurrentAccount;
+
+  /// Titre du popup d'information ou d'erreur
+  ///
+  /// In fr, this message translates to:
+  /// **'Attention'**
+  String get dialogNoticeTitle;
+
+  /// Libellé affiché pour la civilité masculine (valeur stockée: M.)
+  ///
+  /// In fr, this message translates to:
+  /// **'Homme'**
+  String get civiliteMale;
+
+  /// Libellé affiché pour la civilité féminine (valeur stockée: Mme)
+  ///
+  /// In fr, this message translates to:
+  /// **'Femme'**
+  String get civiliteFemale;
 
   /// Erreur générique
   ///

@@ -5,12 +5,13 @@ import 'package:provider/provider.dart';
 import 'package:maparoisse/src/services/auth_service.dart';
 import 'package:maparoisse/src/app_themes.dart';
 import 'package:maparoisse/src/widgets/loader_widget.dart';
+import 'package:maparoisse/src/widgets/app_notice_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import 'reset_password_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  final String email;
-  const OtpVerificationScreen({Key? key, required this.email}) : super(key: key);
+  final String phone;
+  const OtpVerificationScreen({Key? key, required this.phone}) : super(key: key);
 
   @override
   _OtpVerificationScreenState createState() => _OtpVerificationScreenState();
@@ -31,14 +32,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final authService = Provider.of<AuthService>(context, listen: false);
 
     try {
-      final success = await authService.verifyPasswordOTP(widget.email, otp);
+      final success = await authService.verifyPasswordOTP(widget.phone, otp);
 
       if (!mounted) return;
 
       if (success) {
         // Le code est bon, on va à l'écran de réinitialisation
         Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(email: widget.email, otp: otp),
+          builder: (_) => ResetPasswordScreen(phone: widget.phone, otp: otp),
         ));
       } else {
         _showError(l10n.otpIncorrectError);
@@ -88,7 +89,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      l10n.otpSentTo(widget.email),
+                      "Nous avons envoyé un code à 6 chiffres au ${widget.phone}",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: theme.colorScheme.onSurface.withOpacity(0.6), // ✅
@@ -147,8 +148,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppTheme.errorColor),
+    final bool isNetworkError =
+        message.contains('Internet') || message.contains('connexion');
+
+    showAppNoticeDialog(
+      context,
+      message: message,
+      icon: isNetworkError ? Icons.wifi_off : Icons.error_outline,
+      iconColor: isNetworkError ? Colors.grey.shade700 : null,
     );
   }
 }

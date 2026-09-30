@@ -12,6 +12,9 @@ import '../widgets/modern_card.dart'; // ✅ Importation du widget ModernCard
 import 'login_screen.dart';
 import 'package:maparoisse/src/widgets/loader_widget.dart';
 import 'package:flutter/services.dart'; // Pour contrôler le système
+import '../../models/country.dart';
+import '../../widgets/phone_input_field.dart';
+import '../../widgets/app_notice_dialog.dart';
 
 
 import 'package:google_sign_in/google_sign_in.dart'; // Pour Google
@@ -51,16 +54,17 @@ class _RegisterScreenState extends State<RegisterScreen>
 
 
   String? _civilite;
+  Country _selectedCountry = Country.defaultCountry;
 
   final _nameCtrl = TextEditingController();
-  final _userCtrl = TextEditingController();
+
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
 
   final _nameFocus = FocusNode();
-  final _userFocus = FocusNode();
+
   final _emailFocus = FocusNode();
   final _phoneFocus = FocusNode();
   final _passFocus = FocusNode();
@@ -93,14 +97,14 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _userCtrl.dispose();
+
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _passCtrl.dispose();
     _confirmPassCtrl.dispose();
 
     _nameFocus.dispose();
-    _userFocus.dispose();
+
     _emailFocus.dispose();
     _phoneFocus.dispose();
     _passFocus.dispose();
@@ -121,24 +125,12 @@ class _RegisterScreenState extends State<RegisterScreen>
     return null;
   }
 
-  String? _validateUsername(String? value) {
-    final l10n = AppLocalizations.of(context)!;
-    if (value == null || value.trim().isEmpty) {
-      return l10n.valUsernameEmpty;
-    }
-    if (value.trim().length < 3) {
-      return l10n.valUsernameShort;
-    }
-    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value.trim())) {
-      return l10n.valUsernameInvalid;
-    }
-    return null;
-  }
+
 
   String? _validateEmail(String? value) {
     final l10n = AppLocalizations.of(context)!;
     if (value == null || value.trim().isEmpty) {
-      return l10n.valEmailEmpty;
+      return null; // Email optionnel
     }
     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
       return l10n.valEmailInvalid;
@@ -152,18 +144,11 @@ class _RegisterScreenState extends State<RegisterScreen>
     if (value == null || value.trim().isEmpty) {
       return l10n.valPhoneEmpty;
     }
-    // Vérifie si ça commence par '+'
-    if (!value.trim().startsWith('+')) {
-      return l10n.valPhonePrefix;
-    }
-    // Vérifie la longueur (ex: +225 07... donc min 10-12 caractères)
-    if (value.trim().length < 8) {
+    final clean = value.trim().replaceAll(RegExp(r'[\s\-]'), '');
+    if (clean.length < 6) {
       return l10n.valPhoneShort;
     }
-    // Vérifie qu'il n'y a que des chiffres après le +
-    // (On enlève le + et on vérifie si le reste est numérique)
-    String digits = value.trim().substring(1);
-    if (!RegExp(r'^[0-9\s]+$').hasMatch(digits)) {
+    if (!RegExp(r'^[0-9]+$').hasMatch(clean.replaceFirst('+', ''))) {
       return l10n.valPhoneFormat;
     }
     return null;
@@ -338,12 +323,13 @@ class _RegisterScreenState extends State<RegisterScreen>
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
 
+      final fullPhone = Country.formatFullPhone(_selectedCountry, _phoneCtrl.text);
+
       // On attend la réponse. Si ça échoue, ça part dans le 'catch'
       final success = await auth.register(
         fullName: _nameCtrl.text.trim(),
-        username: _userCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
-        phone: _phoneCtrl.text.trim(),
+        email: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+        phone: fullPhone,
         password: _passCtrl.text,
         civilite: _civilite!,
         photoPath: _imageFile?.path,
@@ -407,40 +393,14 @@ class _RegisterScreenState extends State<RegisterScreen>
   void _showError(String message) {
     if (!mounted) return;
 
-    // Récupère la hauteur
-    final double screenHeight = MediaQuery.of(context).size.height;
-
     // Détecte si c'est une erreur réseau
     bool isNetworkError = message.contains('Internet') || message.contains('connexion') || message.contains('serveur');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-                isNetworkError ? Icons.wifi_off : Icons.error_outline,
-                color: Colors.white
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: isNetworkError ? Colors.grey[800] : AppTheme.errorColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.only(
-            bottom: screenHeight - 130,
-            left: 20,
-            right: 20
-        ),
-      ),
+    showAppNoticeDialog(
+      context,
+      message: message,
+      icon: isNetworkError ? Icons.wifi_off : Icons.error_outline,
+      iconColor: isNetworkError ? Colors.grey.shade700 : null,
     );
   }
 
@@ -912,13 +872,20 @@ class _RegisterScreenState extends State<RegisterScreen>
               backgroundColor: theme.cardTheme.color,
               child: Column(
                 children: [
-                  CustomTextField(controller: _nameCtrl, focusNode: _nameFocus, label: l10n.registerLabelFullName, hint: l10n.registerHintFullName, prefixIcon: Icons.person_outline, validator: _validateName, textInputAction: TextInputAction.next, onSubmitted: (_) => _userFocus.requestFocus()),
+                  CustomTextField(controller: _nameCtrl, focusNode: _nameFocus, label: l10n.registerLabelFullName, hint: l10n.registerHintFullName, prefixIcon: Icons.person_outline, validator: _validateName, textInputAction: TextInputAction.next, onSubmitted: (_) => _emailFocus.requestFocus()),
                   const SizedBox(height: 20),
-                  CustomTextField(controller: _userCtrl, focusNode: _userFocus, label: l10n.registerLabelUsername, hint: l10n.registerHintUsername, prefixIcon: Icons.alternate_email, validator: _validateUsername, textInputAction: TextInputAction.next, onSubmitted: (_) => _emailFocus.requestFocus()),
+                  CustomTextField(controller: _emailCtrl, focusNode: _emailFocus, label: "${l10n.registerLabelEmail} (optionnel)", hint: l10n.registerHintEmail, prefixIcon: Icons.email_outlined, validator: _validateEmail, keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next, onSubmitted: (_) => _phoneFocus.requestFocus()),
                   const SizedBox(height: 20),
-                  CustomTextField(controller: _emailCtrl, focusNode: _emailFocus, label: l10n.registerLabelEmail, hint: l10n.registerHintEmail, prefixIcon: Icons.email_outlined, validator: _validateEmail, keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next, onSubmitted: (_) => _phoneFocus.requestFocus()),
-                  const SizedBox(height: 20),
-                  CustomTextField(controller: _phoneCtrl, focusNode: _phoneFocus, label: l10n.registerLabelPhone, hint: l10n.registerHintPhone, prefixIcon: Icons.phone_outlined, validator: _validatePhone, keyboardType: TextInputType.phone, textInputAction: TextInputAction.done),
+                  PhoneInputField(
+                    controller: _phoneCtrl,
+                    focusNode: _phoneFocus,
+                    selectedCountry: _selectedCountry,
+                    onCountryChanged: (c) => setState(() => _selectedCountry = c),
+                    label: l10n.registerLabelPhone,
+                    hintText: "Ex: 07 00 00 00 00",
+                    validator: _validatePhone,
+                    textInputAction: TextInputAction.done,
+                  ),
                 ],
               ),
             ),

@@ -710,8 +710,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sendCode => 'Envoyer le code';
 
   @override
-  String get emailSendError =>
-      'Impossible d\'envoyer l\'e-mail. Vérifiez l\'adresse.';
+  String get smsSendError =>
+      'Impossible d\'envoyer le SMS. Vérifiez votre numéro et réessayez.';
+
+  @override
+  String get phoneNotCurrentAccount =>
+      'Ce numéro n\'est pas celui de votre compte. Saisissez le numéro avec lequel vous êtes connecté.';
+
+  @override
+  String get dialogNoticeTitle => 'Attention';
+
+  @override
+  String get civiliteMale => 'Homme';
+
+  @override
+  String get civiliteFemale => 'Femme';
 
   @override
   String get unknownError => 'Une erreur est survenue.';

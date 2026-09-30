@@ -335,9 +335,29 @@
     "description": "Button for reset"
   },
 
-  "emailSendError": "Unable to send email. Check the address.",
-  "@emailSendError": {
-    "description": "Error if sending fails"
+  "smsSendError": "Unable to send the SMS. Please check your number and try again.",
+  "@smsSendError": {
+    "description": "Error if sending the SMS containing the OTP code fails"
+  },
+
+  "phoneNotCurrentAccount": "This is not your account's number. Enter the number you are signed in with.",
+  "@phoneNotCurrentAccount": {
+    "description": "Error when a signed-in user enters a number other than their own to change their password"
+  },
+
+  "dialogNoticeTitle": "Notice",
+  "@dialogNoticeTitle": {
+    "description": "Title of the information or error dialog"
+  },
+
+  "civiliteMale": "Male",
+  "@civiliteMale": {
+    "description": "Label shown for the male title (stored value: M.)"
+  },
+
+  "civiliteFemale": "Female",
+  "@civiliteFemale": {
+    "description": "Label shown for the female title (stored value: Mme)"
   },
 
   "unknownError": "An error occurred.",

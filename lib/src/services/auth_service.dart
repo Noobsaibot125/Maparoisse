@@ -16,8 +16,8 @@ import 'package:maparoisse/src/services/network_service.dart';
 class AuthService extends ChangeNotifier {
   // --- NOUVELLE BASE URL POUR L'API ---
 
- // static const String _baseUrl = "https://exclusively-untoppled-forest.ngrok-free.dev/api";
-  static const String _baseUrl = "https://e-messe-ci.com/api";
+  static const String _baseUrl = "https://exclusively-untoppled-forest.ngrok-free.dev/api";
+ // static const String _baseUrl = "https://e-messe-ci.com/api";
 
   // --- 1. AJOUTE CETTE LIGNE ---
   /// La liste des notifications en cache pour l'application.
@@ -195,10 +195,31 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Traduit les messages de validation que Laravel renvoie en anglais.
+  ///
+  /// Le backend n'étant pas localisé, ces libellés remonteraient tels quels
+  /// jusqu'à l'utilisateur. Centralisé ici, tous les écrans en profitent.
+  String _translateApiMessage(String message) {
+    final m = message.toLowerCase();
+
+    if (m.contains('already been taken')) {
+      if (m.contains('contact') || m.contains('phone')) {
+        return "Ce numéro est déjà utilisé par un autre compte.";
+      }
+      if (m.contains('email')) {
+        return "Cette adresse e-mail est déjà utilisée par un autre compte.";
+      }
+      if (m.contains('user_name') || m.contains('username')) {
+        return "Ce nom d'utilisateur est déjà pris.";
+      }
+    }
+
+    return message;
+  }
+
   Future<bool> register({
     required String fullName,
-    required String username,
-    required String email,
+    String? email,
     required String phone,
     required String password,
     required String civilite,
@@ -218,8 +239,9 @@ class AuthService extends ChangeNotifier {
 
       // Champs texte
       request.fields['name'] = fullName;
-      request.fields['user_name'] = username;
-      request.fields['email'] = email;
+      if (email != null && email.trim().isNotEmpty) {
+        request.fields['email'] = email.trim();
+      }
       request.fields['contact'] = phone;
       request.fields['password'] = password;
       request.fields['password_confirmation'] = password;
@@ -251,7 +273,12 @@ class AuthService extends ChangeNotifier {
 
         // Note: Vérifie si ton API renvoie 'token' ou 'access_token'
         // Je mets une sécurité pour prendre l'un ou l'autre
-        String token = data['access_token'] ?? data['token'];
+        final String? token = data['access_token'] ?? data['token'];
+        if (token == null) {
+          throw Exception(
+            "Compte créé, mais le serveur n'a pas renvoyé de jeton de connexion. Connectez-vous manuellement.",
+          );
+        }
 
         await _saveAuthData(
           token: token,
@@ -293,7 +320,7 @@ class AuthService extends ChangeNotifier {
         }
 
         throw Exception(
-          message,
+          _translateApiMessage(message),
         ); // On renvoie le message précis (ex: "Email déjà pris")
       }
       // --- CAS 3 : AUTRES ERREURS (500, 404, etc.) ---
@@ -515,10 +542,14 @@ class AuthService extends ChangeNotifier {
     // 1. Sauvegardes de base
     await prefs.setString(_keyToken, token);
     await prefs.setBool(_keyIsLoggedIn, true);
-    await prefs.setInt(_keyId, user['id']);
-    await prefs.setString(_keyFullName, user['name']);
-    await prefs.setString(_keyUsername, user['user_name']);
-    await prefs.setString(_keyEmail, user['email']);
+    // Ces champs sont facultatifs côté API (ex: inscription sans email),
+    // et setInt/setString refusent null.
+    if (user['id'] != null) await prefs.setInt(_keyId, user['id']);
+    if (user['name'] != null) await prefs.setString(_keyFullName, user['name']);
+    if (user['user_name'] != null) {
+      await prefs.setString(_keyUsername, user['user_name']);
+    }
+    if (user['email'] != null) await prefs.setString(_keyEmail, user['email']);
 
     // Gestion du téléphone (parfois null via Google)
     if (user['contact'] != null) {
@@ -705,11 +736,87 @@ class AuthService extends ChangeNotifier {
         return true;
       } else {
         print("Erreur updateUserProfile (API): ${data['message']}");
-        return false;
+
+        // Laravel détaille le refus dans 'errors' (ex: contact déjà utilisé
+        // par un autre compte). On relaie ce message précis à l'écran.
+        String message = data['message'] ?? "Erreur lors de la mise à jour.";
+        if (data['errors'] is Map) {
+          final errors = data['errors'] as Map<String, dynamic>;
+          if (errors.isNotEmpty) {
+            final firstError = errors[errors.keys.first];
+            if (firstError is List && firstError.isNotEmpty) {
+              message = firstError.first;
+            }
+          }
+        }
+        throw Exception(_translateApiMessage(message));
       }
     } catch (e) {
       print("Erreur updateUserProfile (catch): $e");
-      return false;
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  /// Finalise l'inscription d'un compte Google/Apple (numéro + civilité).
+  ///
+  /// Lève une [Exception] portant le message du serveur en cas de refus,
+  /// notamment quand le numéro appartient déjà à un autre compte.
+  Future<bool> completeSocialProfile({
+    required String contact,
+    required String civilite,
+  }) async {
+    if (!_isAuthenticated) return false;
+
+    final url = Uri.parse("$_baseUrl/auth/complete-profile");
+
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _authHeaders,
+            body: jsonEncode({'contact': contact, 'civilite': civilite}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      print("Réponse complete-profile: ${response.statusCode}");
+      print("Body: ${response.body}");
+
+      Map<String, dynamic>? data;
+      try {
+        data = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        data = null; // Réponse non JSON (page d'erreur HTML du serveur)
+      }
+
+      if (response.statusCode == 200 && data?['status'] == 'success') {
+        await _saveAuthData(
+          token: _token!,
+          user: data!['user'],
+          civilite: civilite,
+        );
+        return true;
+      }
+
+      // Laravel détaille le refus dans 'errors' (ex: contact déjà utilisé).
+      String message =
+          (data?['message'] as String?) ?? "Impossible de finaliser l'inscription.";
+      if (data?['errors'] is Map) {
+        final errors = data!['errors'] as Map<String, dynamic>;
+        if (errors.isNotEmpty) {
+          final firstError = errors[errors.keys.first];
+          if (firstError is List && firstError.isNotEmpty) {
+            message = firstError.first;
+          }
+        }
+      }
+      throw Exception(_translateApiMessage(message));
+    } on SocketException catch (_) {
+      throw Exception('Pas de connexion Internet. Vérifiez votre réseau.');
+    } on TimeoutException catch (_) {
+      throw Exception('Le serveur ne répond pas. Vérifiez votre connexion.');
+    } catch (e) {
+      print("Erreur completeSocialProfile: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
@@ -1653,8 +1760,8 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// API 1: Demande un code de réinitialisation par email (Dynamique)
-  Future<bool> requestPasswordReset(String email) async {
+  /// API 1: Demande un code de réinitialisation par téléphone (Dynamique)
+  Future<bool> requestPasswordReset(String phone) async {
     // 1. L'endpoint du développeur
     final url = Uri.parse("$_baseUrl/forgot-password");
 
@@ -1665,9 +1772,9 @@ class AuthService extends ChangeNotifier {
     };
 
     // 3. Le corps de la requête
-    final body = jsonEncode({'email': email});
+    final body = jsonEncode({'phone': phone});
 
-    print("AuthService: Demande de code pour $email à $url");
+    print("AuthService: Demande de code pour $phone à $url");
 
     try {
       final response = await http.post(url, headers: headers, body: body);
@@ -1676,26 +1783,36 @@ class AuthService extends ChangeNotifier {
       print("Body: ${response.body}");
 
       // 4. Gestion de la réponse
+      Map<String, dynamic>? data;
+      try {
+        data = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        data = null; // Réponse non JSON (page d'erreur HTML du serveur)
+      }
 
-      // Cas Succès (ex: 200)
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['status'] == 'success';
+      if (response.statusCode == 200 && data?['status'] == 'success') {
+        return true;
       }
-      // Cas Erreur (ex: 404 "Aucun utilisateur")
-      else {
-        // L'API a renvoyé une erreur (comme "email non trouvé"),
-        // donc on renvoie 'false' pour que l'UI affiche le message.
-        return false;
+
+      // Le serveur explique pourquoi il refuse (numéro inconnu, compte lié à
+      // Google...). On relaie son message pour que l'écran l'affiche tel quel.
+      final String message = (data?['message'] as String?) ?? '';
+      if (message.isNotEmpty) {
+        throw Exception(message);
       }
+      return false;
+    } on SocketException catch (_) {
+      throw Exception('Pas de connexion Internet. Vérifiez votre réseau.');
+    } on TimeoutException catch (_) {
+      throw Exception('Le serveur ne répond pas. Vérifiez votre connexion.');
     } catch (e) {
-      print("[requestPasswordReset] Erreur réseau: $e");
-      return false; // Échec de la connexion
+      print("[requestPasswordReset] Erreur: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
 
   /// API 2: Vérifie si le code OTP est correct (Dynamique)
-  Future<bool> verifyPasswordOTP(String email, String otp) async {
+  Future<bool> verifyPasswordOTP(String phone, String otp) async {
     // 1. L'endpoint du développeur
     final url = Uri.parse("$_baseUrl/verify-otp");
 
@@ -1707,11 +1824,11 @@ class AuthService extends ChangeNotifier {
 
     // 3. Le corps de la requête
     final body = jsonEncode({
-      'email': email,
+      'phone': phone,
       'otp': otp, // Le backend s'attend peut-être à 'code' ou 'token'
     });
 
-    print("AuthService: Vérification du code $otp pour $email");
+    print("AuthService: Vérification du code $otp pour $phone");
 
     try {
       final response = await http.post(url, headers: headers, body: body);
@@ -1737,7 +1854,7 @@ class AuthService extends ChangeNotifier {
 
   /// API 3: Réinitialise le mot de passe (Dynamique)
   Future<bool> resetPassword(
-    String email,
+    String phone,
     String otp,
     String newPassword,
   ) async {
@@ -1752,14 +1869,14 @@ class AuthService extends ChangeNotifier {
 
     // 3. Le corps de la requête (exactement comme demandé par le dev)
     final body = jsonEncode({
-      'email': email,
+      'phone': phone,
       'otp': otp,
       'password': newPassword,
       'password_confirmation':
           newPassword, // Le backend demande la confirmation
     });
 
-    print("AuthService: Réinitialisation du mot de passe pour $email");
+    print("AuthService: Réinitialisation du mot de passe pour $phone");
 
     try {
       final response = await http.post(url, headers: headers, body: body);

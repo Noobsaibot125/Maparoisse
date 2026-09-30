@@ -6,6 +6,7 @@ import '../../app_themes.dart';
 import '../../services/auth_service.dart';
 import 'edit_profile_screen.dart';
 import 'security_screen.dart';
+import '../password_reset/forgot_password_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -81,16 +82,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           );
                         },
                       ),
-                      const Divider(height: 1),
-                      _buildSettingsItem(
-                        icon: Icons.lock_outline,
-                        text: l10n.settingsChangePassword,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const SecurityScreen()),
-                          );
-                        },
-                      ),
+                      if (!auth.isSocialUser) ...[
+                        const Divider(height: 1),
+                        _buildSettingsItem(
+                          icon: Icons.lock_outline,
+                          text: l10n.settingsChangePassword,
+                          onTap: () {
+                            // Parcours OTP par SMS, verrouillé sur le numéro du
+                            // compte connecté.
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(
+                                  restrictToCurrentAccount: true,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ],
                   ),
 

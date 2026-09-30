@@ -10,6 +10,8 @@ import 'package:maparoisse/src/widgets/loader_widget.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/services.dart'; // Pour contrôler le système
 import 'package:maparoisse/src/screens/password_reset/forgot_password_screen.dart';
+import '../../models/country.dart';
+import '../../widgets/phone_input_field.dart';
 
 import 'dart:io'; // Pour Platform
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -33,11 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
 
-  // Utilise TextEditingController standard
-  final _emailOrUserCtrl = TextEditingController(); // Changé de _userCtrl à _emailCtrl
+  final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _emailOrUserFocus = FocusNode(); // Changé de _userFocus
+  final _phoneFocus = FocusNode();
   final _passFocus = FocusNode();
+  Country _selectedCountry = Country.defaultCountry;
 
 
 
@@ -54,29 +56,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailOrUserCtrl.dispose();
+    _phoneCtrl.dispose();
     _passCtrl.dispose();
-    _emailOrUserFocus.dispose();
+    _phoneFocus.dispose();
     _passFocus.dispose();
     super.dispose();
   }
 
 
 
-  // --- NOUVEAU Validateur pour Email OU Username ---
-  String? _validateEmailOrUsername(String? value) {
-    final l10n = AppLocalizations.of(context)!;
-
+  String? _validatePhone(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return l10n.loginValEmailEmpty;
+      return "Veuillez entrer votre numéro de téléphone";
     }
-    if (value.trim().length < 3) { // Validation minimale
-      return l10n.loginValEmailShort;
+    final clean = value.trim().replaceAll(RegExp(r'[\s\-]'), '');
+    if (clean.length < 6) {
+      return "Numéro de téléphone trop court";
     }
-    // Pas de validation spécifique email ici, AuthService s'en chargera
     return null;
   }
-  // --- FIN NOUVEAU Validateur ---
 
   String? _validatePassword(String? value) {
     final l10n = AppLocalizations.of(context)!;
@@ -100,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final loginInput = _emailOrUserCtrl.text.trim();
+    final fullPhone = Country.formatFullPhone(_selectedCountry, _phoneCtrl.text);
     final password = _passCtrl.text;
 
     try {
@@ -108,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // On attend le résultat. Si ça échoue pour le réseau, ça va sauter direct au 'catch'
       final success = await auth.loginWithEmailOrUsername(
-        loginInput: loginInput,
+        loginInput: fullPhone,
         password: password,
       );
 
@@ -398,19 +396,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               key: _formKey,
                               child: Column(
                                 children: [
-                                  // Champ Email/User
-                                  TextFormField(
-                                    controller: _emailOrUserCtrl,
-                                    focusNode: _emailOrUserFocus,
-                                    style: TextStyle(color: theme.colorScheme.onSurface),
-                                    decoration: _buildInputDecoration(
-                                      hintText: l10n.loginHintEmailOrUser,
-                                      prefixIcon: Icons.person_2_outlined,
-                                    ),
-                                    keyboardType: TextInputType.emailAddress,
-                                    validator: _validateEmailOrUsername,
+                                  // Champ Numéro de téléphone avec indicatif pays
+                                  PhoneInputField(
+                                    controller: _phoneCtrl,
+                                    focusNode: _phoneFocus,
+                                    selectedCountry: _selectedCountry,
+                                    onCountryChanged: (c) => setState(() => _selectedCountry = c),
+                                    hintText: "Ex: 07 00 00 00 00",
+                                    validator: _validatePhone,
                                     textInputAction: TextInputAction.next,
-                                    onFieldSubmitted: (_) => _passFocus.requestFocus(),
+                                    onSubmitted: (_) => _passFocus.requestFocus(),
                                   ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.2, duration: 500.ms),
 
                                   const SizedBox(height: 20),

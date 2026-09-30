@@ -32,7 +32,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       if (success) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(email: _emailCtrl.text.trim()),
+          builder: (_) => OtpVerificationScreen(phone: _emailCtrl.text.trim()),
         ));
       } else {
         _showError("Impossible d'envoyer l'e-mail. Vérifiez l'adresse.");

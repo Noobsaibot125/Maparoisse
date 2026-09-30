@@ -4,9 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import '../../app_themes.dart';
-import '../widgets/custom_text_field.dart';
 import '../widgets/modern_card.dart';
 import '../widgets/primary_button.dart'; // Si tu l'as, sinon ElevatedButton
+import '../../models/country.dart';
+import '../../widgets/phone_input_field.dart';
+import '../../widgets/app_notice_dialog.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -18,6 +20,7 @@ class CompleteProfileScreen extends StatefulWidget {
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
+  Country _selectedCountry = Country.defaultCountry;
   String? _civilite;
   bool _isLoading = false;
 
@@ -41,17 +44,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
 
-      // On utilise ta fonction existante updateUserProfile
-      // On envoie null pour les champs qu'on ne touche pas (nom, email, photo)
-      bool success = await auth.updateUserProfile(
-        fullName: auth.fullName ?? "", // On garde le nom actuel
-        username: auth.username,       // On garde le user actuel
-        email: auth.email,             // On garde l'email actuel
-        imageFile: null,               // Pas de changement de photo
-
-        // CE QU'ON MET À JOUR :
-        phone: _phoneCtrl.text.trim(),
-        civilite: _civilite,
+      // Endpoint dédié à la finalisation d'une inscription Google/Apple.
+      // Format international obligatoire : c'est sous cette forme que les
+      // numéros sont enregistrés à l'inscription classique. Sans cela,
+      // "0708325027" et "+2250708325027" cohabiteraient en base comme deux
+      // contacts distincts, et la contrainte d'unicité ne verrait rien.
+      bool success = await auth.completeSocialProfile(
+        contact: Country.formatFullPhone(_selectedCountry, _phoneCtrl.text),
+        civilite: _civilite!,
       );
 
       if (mounted) {
@@ -60,16 +60,19 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           // 🎉 Profil complet ! Direction Dashboard
           Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Erreur lors de la mise à jour."), backgroundColor: Colors.red),
+          showAppNoticeDialog(
+            context,
+            message: "Erreur lors de la mise à jour.",
           );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur: $e"), backgroundColor: Colors.red),
+        // Message du serveur (ex: numéro déjà utilisé par un autre compte).
+        showAppNoticeDialog(
+          context,
+          message: e.toString().replaceAll('Exception: ', ''),
         );
       }
     }
@@ -137,13 +140,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               const SizedBox(height: 24),
 
               // --- CHAMP TÉLÉPHONE ---
-              CustomTextField(
+              PhoneInputField(
                 controller: _phoneCtrl,
-                label: "Numéro de téléphone *",
-                hint: "+225 07...",
-                prefixIcon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-                validator: (val) => (val == null || val.length < 8) ? "Numéro invalide" : null,
+                selectedCountry: _selectedCountry,
+                onCountryChanged: (c) => setState(() => _selectedCountry = c),
+                hintText: "Ex: 07 08 32 50 27",
+                validator: (val) =>
+                    (val == null || val.trim().length < 8) ? "Numéro invalide" : null,
               ),
 
               const SizedBox(height: 40),

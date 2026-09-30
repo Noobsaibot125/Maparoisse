@@ -357,9 +357,29 @@
     "description": "Bouton d'envoi pour le reset"
   },
 
-  "emailSendError": "Impossible d'envoyer l'e-mail. Vérifiez l'adresse.",
-  "@emailSendError": {
-    "description": "Erreur si l'envoi échoue"
+  "smsSendError": "Impossible d'envoyer le SMS. Vérifiez votre numéro et réessayez.",
+  "@smsSendError": {
+    "description": "Erreur si l'envoi du SMS contenant le code OTP échoue"
+  },
+
+  "phoneNotCurrentAccount": "Ce numéro n'est pas celui de votre compte. Saisissez le numéro avec lequel vous êtes connecté.",
+  "@phoneNotCurrentAccount": {
+    "description": "Erreur quand un utilisateur connecté saisit un numéro différent du sien pour changer son mot de passe"
+  },
+
+  "dialogNoticeTitle": "Attention",
+  "@dialogNoticeTitle": {
+    "description": "Titre du popup d'information ou d'erreur"
+  },
+
+  "civiliteMale": "Homme",
+  "@civiliteMale": {
+    "description": "Libellé affiché pour la civilité masculine (valeur stockée: M.)"
+  },
+
+  "civiliteFemale": "Femme",
+  "@civiliteFemale": {
+    "description": "Libellé affiché pour la civilité féminine (valeur stockée: Mme)"
   },
 
   "unknownError": "Une erreur est survenue.",
