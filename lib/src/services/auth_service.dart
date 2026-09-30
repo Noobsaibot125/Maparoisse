@@ -141,6 +141,17 @@ class AuthService extends ChangeNotifier {
         (_appleId != null && _appleId!.isNotEmpty);
   }
 
+  /// Une connexion Google/Apple ne fournit ni numéro ni civilité : tant que
+  /// l'utilisateur n'a pas finalisé son inscription, son compte est inutilisable
+  /// (on ne peut pas traiter une demande de messe sans le joindre).
+  ///
+  /// Règle unique, à utiliser par TOUS les points d'entrée (splash, connexion,
+  /// inscription). Elle était auparavant recopiée dans chaque écran, et le
+  /// splash l'avait oubliée : rouvrir l'app suffisait à passer outre.
+  bool get isProfileComplete =>
+      (_phone != null && _phone!.isNotEmpty) &&
+      (_civilite != null && _civilite!.isNotEmpty);
+
   /// REFACTORISÉ : Vérifie le token au démarrage en appelant GET /user
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
@@ -471,15 +482,18 @@ class AuthService extends ChangeNotifier {
 
       if (fcmToken != null && _token != null) {
         // Appelle l'API pour désenregistrer le token du backend
-        await http.post(
-          Uri.parse("$_baseUrl/fcm-token/unregister"),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $_token',
-          },
-          body: jsonEncode({"fcm_token": fcmToken}),
-        );
+        // Sans délai maximum, un réseau lent bloquerait toute la déconnexion.
+        await http
+            .post(
+              Uri.parse("$_baseUrl/fcm-token/unregister"),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': 'Bearer $_token',
+              },
+              body: jsonEncode({"fcm_token": fcmToken}),
+            )
+            .timeout(const Duration(seconds: 5));
       }
     } catch (e) {
       print("[AuthService] Erreur lors du désenregistrement du token FCM: $e");
@@ -489,7 +503,9 @@ class AuthService extends ChangeNotifier {
     if (apiCall && _token != null) {
       final url = Uri.parse("$_baseUrl/auth/logout");
       try {
-        await http.post(url, headers: _authHeaders);
+        await http
+            .post(url, headers: _authHeaders)
+            .timeout(const Duration(seconds: 5));
         print("Déconnexion API réussie.");
       } catch (e) {
         print("Erreur réseau lors de la déconnexion API : $e");
@@ -511,7 +527,13 @@ class AuthService extends ChangeNotifier {
     }
 
     // 4. SUPPRESSION TOKEN FCM LOCAL
-    await _notificationService.handleLogout();
+    // Protégé : une erreur ici empêcherait la réinitialisation des variables
+    // ci-dessous, laissant l'utilisateur "connecté" en mémoire.
+    try {
+      await _notificationService.handleLogout();
+    } catch (e) {
+      print("Erreur handleLogout FCM : $e");
+    }
 
     // 5. RÉINITIALISATION DES VARIABLES EN MÉMOIRE
     _isAuthenticated = false;

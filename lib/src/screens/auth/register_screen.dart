@@ -689,10 +689,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
           // On vérifie si les infos vitales manquent
           // Note: Google ne donne jamais le téléphone, donc ce sera souvent vrai la 1ère fois
-          bool missingInfo = (currentUser.phone == null || currentUser.phone!.isEmpty)
-          ||  (currentUser.civilite == null || currentUser.civilite!.isEmpty);
-
-          if (missingInfo) {
+          if (!currentUser.isProfileComplete) {
             print("Profil incomplet -> Redirection vers CompleteProfile");
             Navigator.pushReplacementNamed(context, '/complete_profile');
           } else {
@@ -763,10 +760,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         // --- LOGIQUE DE REDIRECTION INTELLIGENTE ---
         // Est-ce qu'il manque le téléphone OU la civilité ?
         // ✅ J'ai corrigé les '||' manquants ci-dessous
-        bool missingInfo = (auth.phone == null || auth.phone!.isEmpty)
-        ||  (auth.civilite == null || auth.civilite!.isEmpty);
-
-        if (missingInfo) {
+        if (!auth.isProfileComplete) {
           print("Profil incomplet (Apple) -> Redirection vers CompleteProfile");
           Navigator.pushReplacementNamed(context, '/complete_profile');
         } else {

@@ -123,11 +123,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       bool loggedIn = await authService.isLoggedIn();
 
       if (loggedIn) {
-        // Si connecté, va vers le Dashboard
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const DashboardScreenWithIndex()),
-        );
+        // Une inscription Google/Apple interrompue laisse une session valide
+        // mais un profil inutilisable : on renvoie l'utilisateur la finaliser.
+        if (!authService.isProfileComplete) {
+          Navigator.pushReplacementNamed(context, '/complete_profile');
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const DashboardScreenWithIndex()),
+          );
+        }
       } else {
         // Si non connecté, va vers l'ÉCRAN D'ONBOARDING
         Navigator.pushReplacement(
